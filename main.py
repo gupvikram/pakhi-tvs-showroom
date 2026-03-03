@@ -168,6 +168,11 @@ async def favicon():
     from fastapi.responses import Response
     return Response(content=svg, media_type="image/svg+xml")
 
+@app.get("/.well-known/appspecific/com.chrome.devtools.json", include_in_schema=False)
+async def chrome_devtools_json():
+    # Silences Chrome devtools 404 warnings 
+    return {}
+
 # ─── Catalog ──────────────────────────────────────────────────────────────────
 @app.get("/catalog")
 def get_catalog():
