@@ -848,8 +848,9 @@ a {
 }
 
 .overlay-panel {
-    background: #fff;
+    background: var(--bg);
     min-height: 100vh;
+    width: 100%;
     max-width: 600px;
     margin: 0 auto;
     padding: 0 0 120px;
@@ -2407,4 +2408,145 @@ button,
 /* ── Smooth scroll everywhere ───────────────────────────────────────── */
 html {
     scroll-behavior: smooth;
+}
+
+/* =================================================================
+   DARK THEME SYSTEM
+   ================================================================= */
+
+/* Theme Toggle Button */
+.theme-toggle-btn {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--navy);
+    color: #fff;
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    cursor: pointer;
+    z-index: 9999;
+    transition: transform 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.theme-toggle-btn:active {
+    transform: scale(0.9);
+}
+
+/* Dark Mode Variables Override */
+[data-theme="dark"] {
+    --bg: #0F0F1A;
+    --card-bg: #1C1C2E;
+    --border: rgba(255, 255, 255, 0.08);
+
+    --text: #F0F0F0;
+    --text-muted: rgba(255, 255, 255, 0.5);
+
+    --navy: #151525;
+
+    --shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+
+    color-scheme: dark;
+}
+
+/* Component Overrides for Dark Mode */
+[data-theme="dark"] .form-control,
+[data-theme="dark"] .search-input {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+[data-theme="dark"] .form-control:focus,
+[data-theme="dark"] .search-input:focus {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--tvs-red);
+}
+
+[data-theme="dark"] .input-group-text {
+    background: rgba(255, 255, 255, 0.02);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.5);
+}
+
+[data-theme="dark"] .table {
+    border-color: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="dark"] .table th {
+    background: #151525;
+    text-shadow: none;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+[data-theme="dark"] .table td {
+    border-color: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="dark"] .table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+[data-theme="dark"] .step-indicator .step:not(.active) {
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.4);
+}
+
+[data-theme="dark"] .price-summary,
+[data-theme="dark"] .price-summary-panel {
+    background: #1C1C2E;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="dark"] .sw-card,
+[data-theme="dark"] .sw-stat-card {
+    background: #1C1C2E;
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="dark"] .sw-stat-card {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+[data-theme="dark"] .variant-card {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .variant-card.selected {
+    background: rgba(196, 30, 58, 0.1);
+    border-color: var(--tvs-red);
+}
+
+[data-theme="dark"] .acc-item-card {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.07);
+}
+
+[data-theme="dark"] .acc-item-card.selected {
+    background: rgba(196, 30, 58, 0.1);
+    border-color: var(--tvs-red);
+}
+
+[data-theme="dark"] .btn-ghost {
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+}
+
+[data-theme="dark"] .btn-ghost:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] select option {
+    background: #1C1C2E;
+    color: #fff;
 }

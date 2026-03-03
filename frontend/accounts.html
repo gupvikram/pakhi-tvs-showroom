@@ -8,6 +8,7 @@
     <meta name="description" content="Accounts dashboard for Pakhi TVS Alwar Showroom — export to Busy.">
     <link rel="stylesheet" href="/assets/style.css">
     <meta name="theme-color" content="#1A1A2E">
+    <script src="/assets/theme.js"></script>
 </head>
 
 <body>
@@ -26,28 +27,8 @@
         <div id="stats-widget-container"></div>
     </div>
 
-    <!-- Stats Cards -->
-    <div class="stats-strip" id="statsStrip">
-        <div class="stat-box">
-            <div class="stat-value" id="statCount">—</div>
-            <div class="stat-label">Sales Today</div>
-        </div>
-        <div class="stat-box">
-            <div class="stat-value" id="statValue">—</div>
-            <div class="stat-label">Today ₹</div>
-        </div>
-        <div class="stat-box">
-            <div class="stat-value amber" id="statExport">—</div>
-            <div class="stat-label">Pending Export</div>
-        </div>
-        <div class="stat-box">
-            <div class="stat-value" id="statDiscount">—</div>
-            <div class="stat-label">Discounts ₹</div>
-        </div>
-    </div>
-
     <!-- Filters + Export Toolbar -->
-    <div style="background:#fff;border-bottom:1px solid var(--border);padding:12px 16px">
+    <div style="background:var(--card-bg, #fff);border-bottom:1px solid var(--border);padding:12px 16px">
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
             <div class="pills" style="margin:0;flex-wrap:nowrap">
                 <div class="pill active" onclick="filterDate('today',this)">Today</div>
@@ -58,16 +39,6 @@
                 <span class="text-muted text-sm" id="selectedCount">0 selected</span>
                 <button class="btn btn-primary btn-sm" id="btnBulkExport" onclick="bulkExport()">Export to Busy</button>
                 <button class="btn btn-ghost btn-sm" onclick="clearSelection()">Clear</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Leaderboard -->
-    <div class="container mb-16">
-        <div class="card-title mt-16 mb-8">🏆 Today's Leaderboard</div>
-        <div class="leaderboard" id="leaderboard">
-            <div class="loading-center">
-                <div class="spinner"></div>
             </div>
         </div>
     </div>
@@ -89,42 +60,9 @@
         let currentDateFilter = 'today';
 
         async function init() {
-            // Sequential to avoid overwhelming Supabase fresh-client connections
-            await loadStats();
             await loadQuotations();
             // SSE: on reconnect only reload quotations; widget handles stat refresh
             connectSSE(handleSSE, loadQuotations);
-        }
-
-        // ── Stats & Leaderboard ───────────────────────────────────────────────────────
-        async function loadStats() {
-            try {
-                const data = await api.get(`/stats?date=${currentDateFilter}`);
-                document.getElementById('statCount').textContent = data.sales_count;
-                document.getElementById('statValue').textContent = formatCurrency(data.sales_value);
-                document.getElementById('statExport').textContent = data.pending_export_count;
-                document.getElementById('statDiscount').textContent = formatCurrency(data.total_discounts);
-
-                renderLeaderboard(data.rep_leaderboard || []);
-            } catch (e) {
-                showToast('Failed to load stats: ' + e.message, 'error');
-            }
-        }
-
-        function renderLeaderboard(reps) {
-            const lb = document.getElementById('leaderboard');
-            if (!reps.length) { lb.innerHTML = '<p class="text-muted text-sm">No sales yet.</p>'; return; }
-            const medals = ['gold', 'silver', 'bronze'];
-            lb.innerHTML = reps.map((r, i) => `
-    <div class="lb-row">
-      <div class="lb-rank ${medals[i] || ''}">${i + 1}</div>
-      <div class="lb-emoji">${r.emoji || '👤'}</div>
-      <div class="lb-name">${r.name}</div>
-      <div class="lb-stats">
-        <div class="lb-count">${r.count}</div>
-        <div class="lb-value">${formatCurrency(r.total)}</div>
-      </div>
-    </div>`).join('');
         }
 
         // ── Quotations Table ──────────────────────────────────────────────────────────

@@ -8,7 +8,7 @@
     <meta name="description" content="Pakhi TVS Alwar Showroom — Staff Portal">
     <link rel="manifest" href="/assets/manifest.json">
     <meta name="theme-color" content="#C41E3A">
-    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="stylesheet" href="/assets/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -27,6 +27,14 @@
             min-height: 100vh;
             min-height: 100dvh;
             overscroll-behavior: none;
+        }
+
+        .home-container {
+            max-width: 600px;
+            margin: 0 auto;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
 
         /* ── Hero Header ── */
@@ -299,60 +307,62 @@
             color: rgba(255, 255, 255, 0.4);
         }
     </style>
+    <script src="/assets/theme.js"></script>
 </head>
 
 <body>
+    <div class="home-container">
+        <!-- Hero -->
+        <div class="home-hero">
+            <div class="home-hero-badge">🏍️ Staff Portal</div>
+            <h1>Pakhi TVS<br>Alwar Showroom</h1>
+            <div class="home-hero-sub">Select your role to continue</div>
+            <div class="home-hero-icon">🏍️</div>
+        </div>
 
-    <!-- Hero -->
-    <div class="home-hero">
-        <div class="home-hero-badge">🏍️ Staff Portal</div>
-        <h1>Pakhi TVS<br>Alwar Showroom</h1>
-        <div class="home-hero-sub">Select your role to continue</div>
-        <div class="home-hero-icon">🏍️</div>
+        <!-- Role Cards -->
+        <div class="home-roles">
+            <a href="/sales" class="role-card sales">
+                <div class="role-icon">🧑‍💼</div>
+                <div class="role-info">
+                    <div class="role-title">Sales Representative</div>
+                    <div class="role-desc">Create new quotations for customers</div>
+                </div>
+            </a>
+
+            <a href="/approve" class="role-card approve">
+                <div class="role-icon">👑</div>
+                <div class="role-info">
+                    <div class="role-title">Owner — Approvals</div>
+                    <div class="role-desc">Review, approve or reject quotes</div>
+                </div>
+                <span class="role-pill pin">PIN</span>
+            </a>
+
+            <a href="/cashier" class="role-card cashier">
+                <div class="role-icon">💵</div>
+                <div class="role-info">
+                    <div class="role-title">Cashier</div>
+                    <div class="role-desc">Collect payments from customers</div>
+                </div>
+            </a>
+
+            <a href="/accounts" class="role-card accounts">
+                <div class="role-icon">📊</div>
+                <div class="role-info">
+                    <div class="role-title">Accounts</div>
+                    <div class="role-desc">View transactions and export data</div>
+                </div>
+            </a>
+        </div>
+
+        <!-- Stats overview -->
+        <div class="home-stats" style="flex:1">
+            <div id="stats-widget-container"></div>
+        </div>
+
+        <div class="home-footer">Pakhi TVS Alwar Showroom · Staff Only</div>
     </div>
-
-    <!-- Role Cards -->
-    <div class="home-roles">
-        <a href="/sales" class="role-card sales">
-            <div class="role-icon">🧑‍💼</div>
-            <div class="role-info">
-                <div class="role-title">Sales Representative</div>
-                <div class="role-desc">Create new quotations for customers</div>
-            </div>
-        </a>
-
-        <a href="/approve" class="role-card approve">
-            <div class="role-icon">👑</div>
-            <div class="role-info">
-                <div class="role-title">Owner — Approvals</div>
-                <div class="role-desc">Review, approve or reject quotes</div>
-            </div>
-            <span class="role-pill pin">PIN</span>
-        </a>
-
-        <a href="/cashier" class="role-card cashier">
-            <div class="role-icon">💵</div>
-            <div class="role-info">
-                <div class="role-title">Cashier</div>
-                <div class="role-desc">Collect payments from customers</div>
-            </div>
-        </a>
-
-        <a href="/accounts" class="role-card accounts">
-            <div class="role-icon">📊</div>
-            <div class="role-info">
-                <div class="role-title">Accounts</div>
-                <div class="role-desc">View transactions and export data</div>
-            </div>
-        </a>
-    </div>
-
-    <!-- Stats overview -->
-    <div class="home-stats">
-        <div id="stats-widget-container"></div>
-    </div>
-
-    <div class="home-footer">Pakhi TVS Alwar Showroom · Staff Only</div>
 
     <script src="/assets/stats-widget.js"></script>
     <script>
