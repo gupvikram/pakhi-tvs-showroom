@@ -6,12 +6,11 @@
 (function () {
     'use strict';
 
-    const RANK = ['🥇', '🥈', '🥉', '4️⃣'];
+    const RANK = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'];
 
     /* ── Formatters ────────────────────────────────────────────────────────── */
     function fmtLakh(paise) {
         const r = Math.round((paise || 0) / 100);
-        if (r >= 1000000) return '₹' + (r / 100000).toFixed(1) + 'L';
         if (r >= 100000) return '₹' + (r / 100000).toFixed(1) + 'L';
         if (r >= 1000) return '₹' + (r / 1000).toFixed(1) + 'K';
         return '₹' + r.toLocaleString('en-IN');
@@ -41,20 +40,30 @@
             '<button class="sw-tab"        data-period="month"  onclick="swPeriod(\'month\',this)">This Month</button>' +
             '</div>' +
             '<div class="sw-stats-grid" id="sw-stats">' + skeletonHTML() + '</div>' +
-            '<div class="sw-lb-title">🏆 Sales Leaderboard</div>' +
+            '<div class="sw-lb-header">' +
+            '  <span class="sw-lb-title">🏆 Sales Leaderboard</span>' +
+            '  <span class="sw-lb-legend">' +
+            '    <span class="sw-pipe sw-pipe-pending">🟡 Pending</span>' +
+            '    <span class="sw-pipe sw-pipe-approved">✅ Approved</span>' +
+            '    <span class="sw-pipe sw-pipe-paid">💰 Collected</span>' +
+            '  </span>' +
+            '</div>' +
             '<div class="sw-lb-list" id="sw-lb">' + skeletonHTML() + '</div>' +
+            '<div class="sw-awaiting-wrap" id="sw-awaiting" style="display:none"></div>' +
             '</div>';
     }
 
-    /* ── Render stats cards ─────────────────────────────────────────────────── */
+    /* ── Render stats cards (6 cards: 4 period-filtered + 2 all-time pipeline) */
     function renderStats(data) {
         var el = document.getElementById('sw-stats');
         if (!el) return;
         var pendClass = (data.pending_approvals > 0) ? ' sw-stat-amber' : '';
+        var apprClass = (data.approved_amount > 0) ? ' sw-stat-blue' : '';
         el.innerHTML =
+            // Row 1: period-filtered numbers
             '<div class="sw-stat-card">' +
             '<div class="sw-stat-num">' + (data.total_sales || 0) + '</div>' +
-            '<div class="sw-stat-lbl">Sales</div>' +
+            '<div class="sw-stat-lbl">💰 Sales</div>' +
             '</div>' +
             '<div class="sw-stat-card">' +
             '<div class="sw-stat-num">' + fmtLakh(data.total_revenue || 0) + '</div>' +
@@ -62,33 +71,67 @@
             '</div>' +
             '<div class="sw-stat-card">' +
             '<div class="sw-stat-num">' + fmtLakh(data.total_discounts || 0) + '</div>' +
-            '<div class="sw-stat-lbl">Discounts Given</div>' +
+            '<div class="sw-stat-lbl">Discounts</div>' +
             '</div>' +
+            // Row 2: all-time pipeline (always visible regardless of period filter)
             '<div class="sw-stat-card' + pendClass + '">' +
+            '<div class="sw-stat-num">' + fmtLakh(data.pending_approval_amount || 0) + '</div>' +
+            '<div class="sw-stat-lbl">🟡 Pending ₹ <span class="sw-stat-sub">(all-time)</span></div>' +
+            '</div>' +
+            '<div class="sw-stat-card' + apprClass + '">' +
+            '<div class="sw-stat-num">' + fmtLakh(data.approved_amount || 0) + '</div>' +
+            '<div class="sw-stat-lbl">✅ Approved ₹ <span class="sw-stat-sub">(uncollected)</span></div>' +
+            '</div>' +
+            '<div class="sw-stat-card">' +
             '<div class="sw-stat-num">' + (data.pending_approvals || 0) + '</div>' +
-            '<div class="sw-stat-lbl">Pending Approval</div>' +
+            '<div class="sw-stat-lbl">⏳ Pending Count</div>' +
             '</div>';
     }
 
-    /* ── Render leaderboard ─────────────────────────────────────────────────── */
+    /* ── Render leaderboard with pipeline columns ───────────────────────────── */
     function renderLeaderboard(board) {
         var el = document.getElementById('sw-lb');
         if (!el) return;
         if (!board || !board.length) {
-            el.innerHTML = '<div class="sw-empty">No sales yet for this period</div>';
+            el.innerHTML = '<div class="sw-empty">No activity yet for this period</div>';
             return;
         }
-        el.innerHTML = board.slice(0, 4).map(function (rep, i) {
+        el.innerHTML = board.slice(0, 5).map(function (rep, i) {
+            var paid = rep.paid_count || rep.sales_count || rep.count || 0;
+            var approved = rep.approved_count || 0;
+            var pending = rep.pending_count || 0;
+            var revenue = rep.total_value || rep.total || 0;
+            var pipeline =
+                '<span class="sw-pipe sw-pipe-pending">🟡 ' + pending + '</span>' +
+                '<span class="sw-pipe sw-pipe-approved">✅ ' + approved + '</span>' +
+                '<span class="sw-pipe sw-pipe-paid">💰 ' + paid + '</span>';
             return '<div class="sw-lb-row">' +
                 '<span class="sw-lb-rank">' + (RANK[i] || (i + 1)) + '</span>' +
-                '<span class="sw-lb-emoji">' + (rep.rep_emoji || '👤') + '</span>' +
+                '<span class="sw-lb-emoji">' + (rep.rep_emoji || rep.emoji || '👤') + '</span>' +
                 '<span class="sw-lb-name">' + (rep.rep_name || rep.name || '') + '</span>' +
-                '<span class="sw-lb-meta">' +
-                '<b>' + (rep.sales_count || rep.count || 0) + '</b> sold &nbsp;' +
-                fmtLakh(rep.total_value || rep.total || 0) +
-                '</span>' +
+                '<span class="sw-lb-pipeline">' + pipeline + '</span>' +
+                '<span class="sw-lb-rev">' + (paid > 0 ? fmtLakh(revenue) : '') + '</span>' +
                 '</div>';
         }).join('');
+    }
+
+    /* ── Render "Awaiting Approval" section ─────────────────────────────────── */
+    function renderAwaiting(reps) {
+        var el = document.getElementById('sw-awaiting');
+        if (!el) return;
+        if (!reps || !reps.length) {
+            el.style.display = 'none';
+            return;
+        }
+        el.style.display = '';
+        el.innerHTML =
+            '<div class="sw-awaiting-title">⏳ Awaiting Your Approval</div>' +
+            reps.map(function (r) {
+                return '<div class="sw-awaiting-row">' +
+                    '<span class="sw-awaiting-who">' + (r.rep_emoji || '👤') + ' ' + r.rep_name + '</span>' +
+                    '<span class="sw-awaiting-detail">' + r.count + ' quote' + (r.count > 1 ? 's' : '') + ' · ' + fmtLakh(r.amount) + '</span>' +
+                    '</div>';
+            }).join('');
     }
 
     /* ── Fetch and render ───────────────────────────────────────────────────── */
@@ -98,6 +141,7 @@
             .then(function (data) {
                 renderStats(data);
                 renderLeaderboard(data.leaderboard || data.rep_leaderboard || []);
+                renderAwaiting(data.reps_with_pending || []);
             })
             .catch(function () {
                 var el = document.getElementById('sw-stats');

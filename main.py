@@ -797,12 +797,37 @@ def get_stats(date_filter: Optional[str] = Query("today", alias="date")):
     discounts    = sum((r.get("discount_amount") or 0) for r in paid_rows)
 
     # Pending approvals — always ALL TIME (not period-filtered, so nothing slips through)
-    pa_res = db.table("quotations").select("id").eq("status", "pending_approval").execute()
-    pending_approvals = len(pa_res.data or [])
+    pa_res = db.table("quotations").select(
+        "id, gross_amount, rep_id, reps(name, emoji)"
+    ).eq("status", "pending_approval").execute()
+    pending_rows_all = pa_res.data or []
+    pending_approvals = len(pending_rows_all)
 
-    # Leaderboard
+    # Approved but not yet paid — always ALL TIME
+    appr_res = db.table("quotations").select(
+        "id, final_amount, rep_id, reps(name, emoji)"
+    ).eq("status", "approved").execute()
+    approved_rows_all = appr_res.data or []
+
+    # Reps with pending quotes (for "Awaiting Approval" section)
+    rep_pending: dict = {}
+    for r in pending_rows_all:
+        rep  = r.get("reps") or {}
+        rid  = r.get("rep_id")
+        if rid not in rep_pending:
+            rep_pending[rid] = {
+                "rep_name":  rep.get("name", ""),
+                "rep_emoji": rep.get("emoji", ""),
+                "count":     0,
+                "amount":    0,
+            }
+        rep_pending[rid]["count"]  += 1
+        rep_pending[rid]["amount"] += r.get("gross_amount", 0)
+    reps_with_pending = sorted(rep_pending.values(), key=lambda x: -x["amount"])
+
+    # Leaderboard — pull ALL statuses for the period so we can show full pipeline per rep
     rep_stats: dict = {}
-    for r in paid_rows:
+    for r in rows:
         rep = (r.get("reps") or {})
         rid = r.get("rep_id")
         if rid not in rep_stats:
@@ -811,25 +836,38 @@ def get_stats(date_filter: Optional[str] = Query("today", alias="date")):
                 "rep_emoji":   rep.get("emoji", ""),
                 "name":        rep.get("name", ""),   # legacy
                 "emoji":       rep.get("emoji", ""),  # legacy
-                "sales_count": 0,
-                "count":       0,  # legacy
+                "sales_count": 0,   # paid + exported — used for ranking
+                "count":       0,   # legacy alias
+                "pending_count":  0,
+                "approved_count": 0,
+                "paid_count":     0,
                 "total_value": 0,
-                "total":       0,  # legacy
+                "total":       0,   # legacy alias
             }
-        rep_stats[rid]["sales_count"] += 1
-        rep_stats[rid]["count"]       += 1
-        rep_stats[rid]["total_value"] += r.get("final_amount", 0)
-        rep_stats[rid]["total"]       += r.get("final_amount", 0)
+        st = r.get("status", "")
+        if st == "pending_approval":
+            rep_stats[rid]["pending_count"]  += 1
+        elif st == "approved":
+            rep_stats[rid]["approved_count"] += 1
+        elif st in ("paid", "exported"):
+            rep_stats[rid]["paid_count"]     += 1
+            rep_stats[rid]["sales_count"]    += 1
+            rep_stats[rid]["count"]          += 1
+            rep_stats[rid]["total_value"]    += r.get("final_amount", 0)
+            rep_stats[rid]["total"]          += r.get("final_amount", 0)
 
     leaderboard = sorted(rep_stats.values(), key=lambda x: (-x["sales_count"], -x["total_value"]))
 
     return {
         # ── New widget fields ──
-        "total_sales":       len(paid_rows),
-        "total_revenue":     sum(r.get("final_amount", 0) for r in paid_rows),
-        "total_discounts":   discounts,
-        "pending_approvals": pending_approvals,
-        "leaderboard":       leaderboard,
+        "total_sales":               len(paid_rows),
+        "total_revenue":             sum(r.get("final_amount", 0) for r in paid_rows),
+        "total_discounts":           discounts,
+        "pending_approvals":         pending_approvals,
+        "pending_approval_amount":   sum(r.get("gross_amount", 0) for r in pending_rows_all),
+        "approved_amount":           sum(r.get("final_amount", 0) for r in approved_rows_all),
+        "reps_with_pending":         reps_with_pending,
+        "leaderboard":               leaderboard,
         # ── Legacy fields (accounts.html backward compat) ──
         "sales_count":          len(paid_rows),
         "sales_value":          sum(r.get("final_amount", 0) for r in paid_rows),

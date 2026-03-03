@@ -199,6 +199,10 @@
             connectSSE(handleSSE, loadQuotations);
             // Init stats widget (deferred until after PIN)
             if (typeof initWidgetOnDashboard === 'function') initWidgetOnDashboard();
+            // Request browser notification permission for background alerts
+            if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission();
+            }
         }
 
         async function loadQuotations() {
@@ -484,10 +488,51 @@
             }
         };
 
+        // ── Notification banner ────────────────────────────────────────────────────────
+        var _notifTimer = null;
+
+        function showNotifBanner(quotationId, repName, amount) {
+            // Remove any existing banner
+            var old = document.getElementById('ownerNotifBanner');
+            if (old) old.remove();
+            if (_notifTimer) clearTimeout(_notifTimer);
+
+            var banner = document.createElement('div');
+            banner.id = 'ownerNotifBanner';
+            banner.className = 'sw-notif-banner';
+            banner.innerHTML =
+                '<span class="sw-notif-msg">🔔 New quote from <b>' + repName + '</b> — ' + formatCurrency(amount) + '</span>' +
+                '<span class="sw-notif-view" onclick="openDetail(' + quotationId + ');document.getElementById(\'ownerNotifBanner\').remove()">View →</span>' +
+                '<span class="sw-notif-close" onclick="this.parentElement.remove()">✕</span>';
+            document.body.prepend(banner);
+
+            // Auto-dismiss after 30 seconds
+            _notifTimer = setTimeout(function () {
+                var b = document.getElementById('ownerNotifBanner');
+                if (b) b.remove();
+            }, 30000);
+
+            // Browser OS notification (works if tab is in background)
+            if ('Notification' in window && Notification.permission === 'granted') {
+                var n = new Notification('🔔 New Quote — Pakhi TVS', {
+                    body: repName + ' submitted a new quotation: ' + formatCurrency(amount),
+                    icon: '/assets/manifest.json',
+                    tag: 'tvs-new-quote',
+                    renotify: true,
+                });
+                n.onclick = function () {
+                    window.focus();
+                    openDetail(quotationId);
+                    n.close();
+                };
+            }
+        }
+
         // ── SSE ────────────────────────────────────────────────────────────────────────
         function handleSSE(eventType, data) {
             if (eventType === 'quotation_submitted') {
-                showToast(`🔔 New quote from ${data.rep_name} — ${formatCurrency(data.gross_amount)}`, 'info', 6000);
+                var qid = data.quotation_id || data.id;
+                showNotifBanner(qid, data.rep_name || '?', data.gross_amount || 0);
                 loadQuotations();
             }
         }
