@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TVS Alwar – Cashier</title>
+    <meta name="description" content="Cashier payment collection queue for Pakhi TVS Alwar Showroom.">
+    <link rel="stylesheet" href="/assets/style.css">
+    <meta name="theme-color" content="#C41E3A">
+</head>
+
+<body>
+
+    <header class="page-header">
+        <div class="header-row">
+            <div>
+                <h1>Pakhi TVS Alwar Showroom</h1>
+                <div class="subtitle">Cashier — Payment Collection</div>
+            </div>
+            <span class="count-badge" id="pendingBadge" style="background:#fff;color:var(--tvs-red)">0</span>
+        </div>
+    </header>
+
+    <!-- Shared stats widget -->
+    <div class="container" style="padding-bottom:0">
+        <div id="stats-widget-container"></div>
+    </div>
+
+    <div class="tab-bar">
+        <div class="tab-item active" onclick="setTab('approved', this)">Pending Payment</div>
+        <div class="tab-item" onclick="setTab('paid', this)">Collected</div>
+    </div>
+
+    <!-- Date filter pills -->
+    <div class="date-filter-strip" id="cashierFilterStrip">
+        <div class="df-pill active" onclick="setDateFilter('today',this)">Today</div>
+        <div class="df-pill" onclick="setDateFilter('week',this)">This Week</div>
+        <div class="df-pill" onclick="setDateFilter('all',this)">All Time</div>
+    </div>
+
+    <div class="container" style="padding-top:12px">
+        <div id="cashierList"></div>
+    </div>
+
+    <!-- PAYMENT COLLECTION OVERLAY -->
+    <div class="overlay" id="payOverlay">
+        <div class="overlay-panel">
+            <div class="overlay-header" style="background:var(--tvs-red)">
+                <div class="overlay-title" id="payTitle">Collect Payment</div>
+                <div class="overlay-close" onclick="closePay()">✕</div>
+            </div>
+
+            <div class="detail-section">
+                <div class="detail-label">Invoice</div>
+                <div style="font-size:22px;font-weight:800" id="payInvoice">—</div>
+            </div>
+
+            <div class="detail-section">
+                <div class="detail-label">Customer</div>
+                <div class="quote-customer" id="payCustomer">—</div>
+                <div class="quote-vehicle" id="payVehicle">—</div>
+            </div>
+
+            <!-- AMOUNT DUE – BIG display -->
+            <div class="detail-section" style="text-align:center;background:#FFF5F7;border:none">
+                <div class="detail-label">AMOUNT DUE</div>
+                <div style="font-size:42px;font-weight:900;color:var(--tvs-red);letter-spacing:-1px" id="payAmount">₹0
+                </div>
+            </div>
+
+            <!-- Payment mode -->
+            <div class="detail-section">
+                <div class="detail-label">Payment Mode</div>
+                <div class="payment-modes">
+                    <button class="payment-mode-btn" id="modeCash" onclick="selectMode('Cash')">
+                        <span class="mode-icon">💵</span>CASH
+                    </button>
+                    <button class="payment-mode-btn" id="modeUPI" onclick="selectMode('UPI')">
+                        <span class="mode-icon">📱</span>UPI
+                    </button>
+                    <button class="payment-mode-btn" id="modeFinance" onclick="selectMode('Finance')">
+                        <span class="mode-icon">🏦</span>FINANCE
+                    </button>
+                </div>
+
+                <div id="upiFields" class="hidden">
+                    <div class="field mt-8">
+                        <label for="upiRef">UPI Transaction Reference *</label>
+                        <input type="text" id="upiRef" placeholder="Enter UPI ref number" oninput="validatePayForm()">
+                    </div>
+                </div>
+
+                <div id="financeFields" class="hidden">
+                    <div class="field mt-8">
+                        <label for="financeCoSelect">Finance Company</label>
+                        <select id="financeCoSelect" onchange="validatePayForm()">
+                            <option value="">Select…</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="financeRef">Finance Reference Number *</label>
+                        <input type="text" id="financeRef" placeholder="Enter finance ref" oninput="validatePayForm()">
+                    </div>
+                    <div class="field">
+                        <label for="downPayCollected">Down Payment Collected (₹)</label>
+                        <input type="number" id="downPayCollected" placeholder="0" min="0">
+                    </div>
+                </div>
+            </div>
+
+            <div style="padding:16px">
+                <button class="btn btn-success btn-full" id="btnConfirmPay" disabled onclick="confirmPayment()">Mark as
+                    Paid ✅</button>
+            </div>
+
+            <div style="height:80px"></div>
+        </div>
+    </div>
+
+    <!-- Confirm payment dialog -->
+    <div class="bottom-sheet-backdrop" id="payConfirmBackdrop">
+        <div class="bottom-sheet" style="position:fixed;bottom:0;left:0;right:0;max-width:600px;margin:0 auto">
+            <div class="bottom-sheet-handle"></div>
+            <h3 id="payConfirmTitle">Confirm Payment</h3>
+            <p class="text-muted mb-16" id="payConfirmText">Are you sure?</p>
+            <div style="display:flex;gap:10px">
+                <button class="btn btn-secondary" style="flex:1" onclick="closePayConfirm()">Cancel</button>
+                <button class="btn btn-success" style="flex:1" id="btnFinalPay" onclick="submitPayment()">Confirm
+                    ✅</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success screen -->
+    <div class="overlay" id="successOverlay" style="display:none">
+        <div class="overlay-panel">
+            <div class="success-screen">
+                <div class="success-icon">✅</div>
+                <div class="success-title">Payment Recorded!</div>
+                <div class="success-subtitle" id="successAmount">—</div>
+                <div class="success-detail" id="successCustomer">—</div>
+                <p class="text-muted text-sm">Accountant has been notified.</p>
+                <button class="btn btn-primary mt-16" onclick="closeSuccess()">Back to Queue</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { formatCurrency, formatDate, timeAgo, showToast, api, connectSSE } from '/assets/app.js';
+
+        let currentTab = 'approved';
+        let currentQuotation = null;
+        let selectedMode = null;
+        let financeCompanies = [];
+        let currentDateFilter = 'today';
+
+        async function init() {
+            await loadFinanceCompanies();
+            await loadQuotations();
+            connectSSE(handleSSE, loadQuotations);
+        }
+
+        async function loadFinanceCompanies() {
+            try {
+                const data = await api.get('/finance-companies');
+                financeCompanies = data.finance_companies;
+                const sel = document.getElementById('financeCoSelect');
+                financeCompanies.forEach(fc => {
+                    const opt = document.createElement('option');
+                    opt.value = fc.id;
+                    opt.textContent = fc.name;
+                    sel.appendChild(opt);
+                });
+            } catch { }
+        }
+
+        async function loadQuotations() {
+            let statusParam;
+            if (currentTab === 'paid') {
+                statusParam = `?status=paid&date=${currentDateFilter}`;
+            } else {
+                // Pending payment: always show all approved regardless of date
+                statusParam = `?status=approved`;
+            }
+            try {
+                const data = await api.get('/quotations' + statusParam);
+                renderList(data.quotations || []);
+                updateBadge(data.quotations || []);
+            } catch (e) {
+                showToast('Error loading quotations: ' + e.message, 'error');
+            }
+        }
+
+        function updateBadge(quotes) {
+            const pending = quotes.filter(q => q.status === 'approved').length;
+            document.getElementById('pendingBadge').textContent = pending;
+        }
+
+        function renderList(quotes) {
+            const list = document.getElementById('cashierList');
+            if (!quotes.length) {
+                list.innerHTML = `<div class="empty-state"><span class="empty-icon">${currentTab === 'approved' ? '🎉' : '📋'}</span><p>${currentTab === 'approved' ? 'No pending payments!' : 'No payments collected today.'}</p></div>`;
+                return;
+            }
+
+            list.innerHTML = quotes.map(q => {
+                const v = q.variants || {};
+                const veh = v.vehicles || {};
+                const rep = q.reps || {};
+                const isPending = q.status === 'approved';
+                return `
+      <div class="quote-card ${isPending ? '' : ''}" ${isPending ? `onclick="openPay(${q.id})"` : ''} style="${isPending ? 'cursor:pointer' : 'cursor:default;opacity:.85'}">
+        ${isPending ? `<div style="margin-bottom:8px;font-size:11px;font-weight:700;color:var(--success);text-transform:uppercase">💰 AWAITING PAYMENT</div>` : `<div style="margin-bottom:8px;font-size:11px;font-weight:700;color:var(--success);text-transform:uppercase">✅ COLLECTED</div>`}
+        <div style="font-size:20px;font-weight:800;color:var(--navy)">${q.invoice_number || q.quote_number || '—'}</div>
+        <div class="quote-customer mt-8">${q.customer_name}</div>
+        <div class="quote-vehicle">${veh.brand || ''} ${veh.model || ''} — ${v.name || ''}</div>
+        <div class="flex-between mt-8">
+          <div class="quote-amount">${formatCurrency(q.final_amount)}</div>
+          <div class="quote-rep">${rep.emoji || ''} ${rep.name || ''}</div>
+        </div>
+        ${isPending ? `<div class="text-muted text-sm mt-8">Approved <span data-time-ago="${q.approved_at}">${timeAgo(q.approved_at)}</span></div>` : `<div class="text-muted text-sm mt-8">Via ${q.payment_mode || '—'} • ${timeAgo(q.paid_at)}</div>`}
+        ${isPending ? `<button class="btn btn-success btn-full mt-16">Collect Payment →</button>` : ''}
+      </div>`;
+            }).join('');
+        }
+
+        window.setTab = (tab, el) => {
+            document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+            el.classList.add('active');
+            currentTab = tab;
+            loadQuotations();
+        };
+
+        window.setDateFilter = (filter, el) => {
+            document.querySelectorAll('#cashierFilterStrip .df-pill').forEach(p => p.classList.remove('active'));
+            el.classList.add('active');
+            currentDateFilter = filter;
+            loadQuotations();
+        };
+
+        // ── Payment overlay ────────────────────────────────────────────────────────────
+        window.openPay = async (id) => {
+            selectedMode = null;
+            document.getElementById('upiRef').value = '';
+            document.getElementById('financeRef').value = '';
+            document.getElementById('upiFields').classList.add('hidden');
+            document.getElementById('financeFields').classList.add('hidden');
+            document.querySelectorAll('.payment-mode-btn').forEach(b => b.classList.remove('selected'));
+            document.getElementById('btnConfirmPay').disabled = true;
+
+            try {
+                const data = await api.get(`/quotations/${id}`);
+                currentQuotation = data.quotation;
+                const v = currentQuotation.variant || {};
+                const veh = (v.vehicles || {});
+                document.getElementById('payTitle').textContent = 'Collect Payment';
+                document.getElementById('payInvoice').textContent = currentQuotation.invoice_number || '—';
+                document.getElementById('payCustomer').textContent = currentQuotation.customer_name;
+                document.getElementById('payVehicle').textContent = `${veh.brand || ''} ${veh.model || ''} — ${v.name || ''}`;
+                document.getElementById('payAmount').textContent = formatCurrency(currentQuotation.final_amount);
+
+                // Pre-fill finance company if set
+                if (currentQuotation.finance_company_id) {
+                    document.getElementById('financeCoSelect').value = currentQuotation.finance_company_id;
+                }
+
+                document.getElementById('payOverlay').classList.add('open');
+            } catch (e) {
+                showToast('Error loading quotation: ' + e.message, 'error');
+            }
+        };
+
+        window.closePay = () => {
+            document.getElementById('payOverlay').classList.remove('open');
+            currentQuotation = null;
+        };
+
+        window.selectMode = (mode) => {
+            selectedMode = mode;
+            document.querySelectorAll('.payment-mode-btn').forEach(b => b.classList.remove('selected'));
+            document.getElementById(`mode${mode}`).classList.add('selected');
+            document.getElementById('upiFields').classList.toggle('hidden', mode !== 'UPI');
+            document.getElementById('financeFields').classList.toggle('hidden', mode !== 'Finance');
+            validatePayForm();
+        };
+
+        window.validatePayForm = () => {
+            let valid = !!selectedMode;
+            if (selectedMode === 'UPI') {
+                valid = !!document.getElementById('upiRef').value.trim();
+            } else if (selectedMode === 'Finance') {
+                valid = !!document.getElementById('financeRef').value.trim();
+            }
+            document.getElementById('btnConfirmPay').disabled = !valid;
+        };
+
+        window.confirmPayment = () => {
+            if (!currentQuotation) { showToast('Session expired — please reopen the payment', 'warning'); return; }
+            const amount = formatCurrency(currentQuotation.final_amount);
+            document.getElementById('payConfirmTitle').textContent = `Confirm Payment?`;
+            document.getElementById('payConfirmText').textContent =
+                `Confirm ${amount} received via ${selectedMode} from ${currentQuotation.customer_name}?`;
+            document.getElementById('payConfirmBackdrop').classList.add('open');
+        };
+
+        window.closePayConfirm = () => {
+            document.getElementById('payConfirmBackdrop').classList.remove('open');
+        };
+
+        window.submitPayment = async () => {
+            if (!currentQuotation) {
+                showToast('Session expired — please close and reopen the payment', 'warning');
+                return;
+            }
+            const btn = document.getElementById('btnFinalPay');
+            btn.disabled = true;
+            btn.textContent = 'Processing…';
+
+            const body = {
+                payment_mode: selectedMode,
+                upi_reference: selectedMode === 'UPI' ? document.getElementById('upiRef').value.trim() : null,
+                finance_company_id: selectedMode === 'Finance' ? (parseInt(document.getElementById('financeCoSelect').value) || null) : null,
+                finance_reference: selectedMode === 'Finance' ? document.getElementById('financeRef').value.trim() : null,
+            };
+
+            try {
+                // Snapshot values before closePay() nullifies currentQuotation
+                const paidAmount = currentQuotation.final_amount;
+                const paidCustomer = currentQuotation.customer_name;
+                const paidMode = selectedMode;
+
+                await api.post(`/quotations/${currentQuotation.id}/pay`, body);
+                closePayConfirm();
+                closePay();
+
+                // Show success overlay (using snapshot, not currentQuotation which is now null)
+                document.getElementById('successAmount').textContent =
+                    `${formatCurrency(paidAmount)} via ${paidMode}`;
+                document.getElementById('successCustomer').textContent = paidCustomer;
+                document.getElementById('successOverlay').style.display = 'block';
+            } catch (e) {
+                showToast('Payment failed: ' + e.message, 'error');
+                btn.disabled = false;
+                btn.textContent = 'Confirm ✅';
+            }
+        };
+
+        window.closeSuccess = () => {
+            document.getElementById('successOverlay').style.display = 'none';
+            loadQuotations();
+        };
+
+        // ── SSE ────────────────────────────────────────────────────────────────────────
+        function handleSSE(eventType, data) {
+            if (eventType === 'quotation_approved' && currentTab === 'approved') {
+                showToast(`💰 New payment due: ${data.customer_name} — ${formatCurrency(data.final_amount)}`, 'success', 6000);
+                loadQuotations();
+            }
+        }
+
+        init();
+    </script>
+
+    <script src="/assets/stats-widget.js"></script>
+    <script>
+        // Defer so widget does not race with page init Supabase calls
+        setTimeout(function() { initStatsWidget('stats-widget-container'); }, 600);
+    </script>
+</body>
+
+</html>

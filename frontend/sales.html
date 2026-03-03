@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TVS Alwar – New Quotation</title>
+    <meta name="description" content="Create a new vehicle quotation for Pakhi TVS Alwar Showroom customers.">
+    <link rel="stylesheet" href="/assets/style.css">
+    <link rel="manifest" href="/assets/manifest.json">
+    <meta name="theme-color" content="#C41E3A">
+</head>
+
+<body>
+
+    <header class="page-header">
+        <div class="header-row">
+            <div>
+                <h1>Pakhi TVS Alwar Showroom</h1>
+                <div class="subtitle" id="headerSubtitle">New Quotation</div>
+            </div>
+            <button class="btn btn-ghost btn-sm" id="btnNewQuote" style="color:#fff;display:none" onclick="resetApp()">+
+                New Quote</button>
+        </div>
+    </header>
+
+    <div class="step-indicator" id="stepIndicator">
+        <div class="step-item active" id="si-1">
+            <div class="step-num">1</div>
+            <div class="step-label">Who</div>
+        </div>
+        <div class="step-connector"></div>
+        <div class="step-item" id="si-2">
+            <div class="step-num">2</div>
+            <div class="step-label">Customer</div>
+        </div>
+        <div class="step-connector"></div>
+        <div class="step-item" id="si-3">
+            <div class="step-num">3</div>
+            <div class="step-label">Vehicle</div>
+        </div>
+        <div class="step-connector"></div>
+        <div class="step-item" id="si-4">
+            <div class="step-num">4</div>
+            <div class="step-label">Charges</div>
+        </div>
+    </div>
+
+    <!-- STEP 1: REP SELECTION -->
+    <!-- Stats widget – shown only on Step 1 -->
+    <div class="container" style="padding-bottom:0" id="statsWidgetWrap">
+        <div id="stats-widget-container"></div>
+    </div>
+
+    <div id="step1" class="container">
+        <p class="text-muted mb-16" style="margin-top:8px">Select your name to continue.</p>
+        <div class="rep-grid" id="repGrid"></div>
+        <div class="loading-center" id="repLoading">
+            <div class="spinner"></div><span>Loading…</span>
+        </div>
+    </div>
+
+    <!-- STEP 2: CUSTOMER DETAILS -->
+    <div id="step2" class="container hidden">
+        <button class="btn btn-ghost btn-sm mb-16" onclick="goStep(1)">← Back</button>
+        <div class="card">
+            <div class="card-title">Customer Details</div>
+            <div class="field"><label for="custName">Customer Name *</label><input type="text" id="custName"
+                    placeholder="Full name" autocomplete="name"></div>
+            <div class="field"><label for="custPhone">Phone Number *</label><input type="tel" id="custPhone"
+                    placeholder="10-digit mobile number" maxlength="10" inputmode="numeric"></div>
+            <div class="field"><label for="custAddress">Address *</label><textarea id="custAddress"
+                    placeholder="Full address including city, pin code" rows="3"></textarea></div>
+        </div>
+        <button class="btn btn-primary btn-full mt-16" id="btnCustContinue" onclick="goStep(3)">Continue →</button>
+    </div>
+
+    <!-- STEP 3: VEHICLE SELECTION -->
+    <div id="step3" class="container hidden">
+        <button class="btn btn-ghost btn-sm mb-16" onclick="goStep(2)">← Back</button>
+        <div class="pills" id="categoryPills"></div>
+        <div id="vehicleList"></div>
+        <div class="loading-center" id="vehicleLoading">
+            <div class="spinner"></div><span>Loading catalog…</span>
+        </div>
+    </div>
+
+    <!-- STEP 4: CHARGES & ACCESSORIES -->
+    <div id="step4" class="container hidden">
+        <button class="btn btn-ghost btn-sm mb-16" onclick="goStep(3)">← Back</button>
+
+        <!-- Gov Charges -->
+        <div class="card">
+            <div class="card-title">Government Charges</div>
+            <table class="charges-table">
+                <tr>
+                    <td class="label">Ex-showroom Price</td>
+                    <td class="value"><span id="disp_ex_showroom" class="fw-700 text-red"></span></td>
+                </tr>
+                <tr id="rowRoadTax">
+                    <td class="label"><span id="roadTaxLabel">Road Tax</span></td>
+                    <td class="value"><input type="number" id="inp_road_tax" min="0" step="1" onchange="recalc()"></td>
+                </tr>
+                <tr id="rowRoadTaxExempt" class="hidden">
+                    <td class="label">Road Tax</td>
+                    <td class="value"><span class="tag tag-ev">⚡ EV — ₹0</span></td>
+                </tr>
+                <tr>
+                    <td class="label">Registration Fee</td>
+                    <td class="value"><input type="number" id="inp_reg_fee" value="400" min="0" step="1"
+                            onchange="recalc()"></td>
+                </tr>
+                <tr>
+                    <td class="label">HSRP Number Plate</td>
+                    <td class="value"><input type="number" id="inp_hsrp" value="450" min="0" step="1"
+                            onchange="recalc()"></td>
+                </tr>
+                <tr>
+                    <td class="label">Smart Card RC</td>
+                    <td class="value"><input type="number" id="inp_smart_card" value="200" min="0" step="1"
+                            onchange="recalc()"></td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Insurance -->
+        <div class="card">
+            <div class="card-title">Insurance *</div>
+            <div class="field"><label for="insCompany">Insurance Company</label><input type="text" id="insCompany"
+                    placeholder="e.g. LIC, Bajaj Allianz"></div>
+            <div class="field">
+                <label>Coverage Type</label>
+                <div style="display:flex;gap:16px;margin-top:4px">
+                    <label style="display:flex;align-items:center;gap:6px;font-size:14px;font-weight:400"><input
+                            type="radio" name="insCoverage" value="Third Party" checked> Third Party</label>
+                    <label style="display:flex;align-items:center;gap:6px;font-size:14px;font-weight:400"><input
+                            type="radio" name="insCoverage" value="Comprehensive"> Comprehensive</label>
+                </div>
+            </div>
+            <div class="field"><label for="insPremium">Premium Amount (₹)</label><input type="number" id="insPremium"
+                    placeholder="0" min="0" step="1" onchange="recalc()"></div>
+            <div class="field">
+                <label>Duration</label>
+                <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:4px">
+                    <label style="display:flex;align-items:center;gap:6px;font-size:14px;font-weight:400"><input
+                            type="radio" name="insDuration" value="1" checked> 1 Year</label>
+                    <label style="display:flex;align-items:center;gap:6px;font-size:14px;font-weight:400"><input
+                            type="radio" name="insDuration" value="3"> 3 Year</label>
+                    <label style="display:flex;align-items:center;gap:6px;font-size:14px;font-weight:400"><input
+                            type="radio" name="insDuration" value="5"> 5 Year</label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Finance -->
+        <div class="card">
+            <div class="toggle-row"><span class="toggle-label">Customer Taking Loan?</span><label class="toggle"><input
+                        type="checkbox" id="toggleFinance" onchange="toggleSection('finance')"><span
+                        class="toggle-slider"></span></label></div>
+            <div id="financeSection" class="hidden">
+                <div class="field"><label for="financeCompany">Finance Company</label><select id="financeCompany">
+                        <option value="">Select company…</option>
+                    </select></div>
+                <div class="field"><label for="hypothecation">Hypothecation Charges (₹)</label><input type="number"
+                        id="hypothecation" value="1500" min="0" step="1" onchange="recalc()"></div>
+                <div class="field"><label for="loanAmount">Loan Amount (₹)</label><input type="number" id="loanAmount"
+                        placeholder="0" min="0" step="1"></div>
+                <div class="field"><label for="downPayment">Down Payment (₹)</label><input type="number"
+                        id="downPayment" placeholder="0" min="0" step="1"></div>
+            </div>
+        </div>
+
+        <!-- Extended Warranty -->
+        <div class="card">
+            <div class="toggle-row"><span class="toggle-label">Add Extended Warranty?</span><label class="toggle"><input
+                        type="checkbox" id="toggleWarranty" onchange="toggleSection('warranty')"><span
+                        class="toggle-slider"></span></label></div>
+            <div id="warrantySection" class="hidden">
+                <div class="field">
+                    <label>Duration</label>
+                    <div style="display:flex;gap:16px;margin-top:4px">
+                        <label style="display:flex;align-items:center;gap:6px;font-size:14px;font-weight:400"><input
+                                type="radio" name="warrantyYears" value="1" checked> 1 Year</label>
+                        <label style="display:flex;align-items:center;gap:6px;font-size:14px;font-weight:400"><input
+                                type="radio" name="warrantyYears" value="3"> 3 Year</label>
+                    </div>
+                </div>
+                <div class="field"><label for="warrantyPrice">Amount (₹)</label><input type="number" id="warrantyPrice"
+                        placeholder="0" min="0" step="1" onchange="recalc()"></div>
+            </div>
+        </div>
+
+        <!-- Accessories -->
+        <div class="card">
+            <div class="card-title">Accessories</div>
+            <div id="accessoriesList"></div>
+        </div>
+
+        <div class="page-bottom-spacer"></div>
+    </div>
+
+    <!-- STEP 5: SUCCESS -->
+    <div id="stepSuccess" class="hidden">
+        <div class="success-screen">
+            <div class="success-icon">✅</div>
+            <div class="success-title">Quote Submitted!</div>
+            <div class="success-subtitle">Quote Number</div>
+            <div class="success-detail" id="successQuoteNum">—</div>
+            <p class="text-muted text-sm">Owner has been notified via Telegram.</p>
+            <button class="btn btn-primary mt-16" onclick="resetApp()">+ Start New Quote</button>
+        </div>
+    </div>
+
+    <!-- Sticky Price Summary (Step 4) -->
+    <div class="price-summary hidden" id="priceSummary">
+        <div class="price-summary-collapsed" onclick="toggleSummary()">
+            <div>
+                <div class="price-summary-total-label">TOTAL QUOTED</div>
+                <div class="price-summary-total-value" id="summaryTotal">₹0</div>
+            </div>
+            <div class="price-summary-expand-icon" id="summaryChevron">▲</div>
+        </div>
+        <div class="price-summary-breakdown">
+            <table class="breakdown-table">
+                <tr>
+                    <td class="breakdown-label">Ex-showroom</td>
+                    <td class="breakdown-value" id="br_ex">₹0</td>
+                </tr>
+                <tr>
+                    <td class="breakdown-label" id="br_rt_label">Road Tax</td>
+                    <td class="breakdown-value" id="br_rt">₹0</td>
+                </tr>
+                <tr>
+                    <td class="breakdown-label">Registration</td>
+                    <td class="breakdown-value" id="br_reg">₹0</td>
+                </tr>
+                <tr>
+                    <td class="breakdown-label">HSRP Plate</td>
+                    <td class="breakdown-value" id="br_hsrp">₹0</td>
+                </tr>
+                <tr>
+                    <td class="breakdown-label">Smart Card RC</td>
+                    <td class="breakdown-value" id="br_smart">₹0</td>
+                </tr>
+                <tr>
+                    <td class="breakdown-label">FASTag</td>
+                    <td class="breakdown-value" id="br_fastag">₹0</td>
+                </tr>
+                <tr>
+                    <td class="breakdown-label">Insurance</td>
+                    <td class="breakdown-value" id="br_ins">₹0</td>
+                </tr>
+                <tr id="br_hypo_row" class="hidden">
+                    <td class="breakdown-label">Hypothecation</td>
+                    <td class="breakdown-value" id="br_hypo">₹0</td>
+                </tr>
+                <tr id="br_warranty_row" class="hidden">
+                    <td class="breakdown-label">Ext. Warranty</td>
+                    <td class="breakdown-value" id="br_warranty">₹0</td>
+                </tr>
+                <tr id="br_acc_row" class="hidden">
+                    <td class="breakdown-label">Accessories</td>
+                    <td class="breakdown-value" id="br_acc">₹0</td>
+                </tr>
+                <tr class="breakdown-total">
+                    <td class="breakdown-label">TOTAL</td>
+                    <td class="breakdown-value" id="br_total">₹0</td>
+                </tr>
+            </table>
+            <div class="submit-bar">
+                <button class="btn btn-primary btn-full" id="btnSubmit" onclick="confirmSubmit()">Submit for Approval
+                    →</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Dialog -->
+    <div class="bottom-sheet-backdrop" id="confirmBackdrop">
+        <div class="bottom-sheet" style="position:fixed;bottom:0;left:0;right:0;max-width:600px;margin:0 auto;">
+            <div class="bottom-sheet-handle"></div>
+            <h3>Confirm Submission</h3>
+            <p class="text-muted mb-16" id="confirmText">Submit this quotation to the owner for approval?</p>
+            <div style="display:flex;gap:10px">
+                <button class="btn btn-secondary" style="flex:1" onclick="closeConfirm()">Cancel</button>
+                <button class="btn btn-primary" style="flex:1" id="btnConfirmSubmit" onclick="submitQuotation()">Confirm
+                    →</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { formatCurrency, showToast, api } from '/assets/app.js';
+
+        // ── State ────────────────────────────────────────────────────────────────────
+        let selectedRep = null;
+        let catalog = {};
+        let accessories = {};
+        let financeCompanies = [];
+        let selectedVariant = null;
+        let currentStep = 1;
+        let summaryExpanded = false;
+
+        // ── Init ─────────────────────────────────────────────────────────────────────
+        async function init() {
+            await Promise.all([loadReps(), loadCatalog(), loadAccessories(), loadFinanceCompanies()]);
+        }
+
+        async function loadReps() {
+            try {
+                const data = await api.get('/reps');
+                renderReps(data.reps);
+                document.getElementById('repLoading').classList.add('hidden');
+            } catch (e) {
+                showToast('Failed to load reps: ' + e.message, 'error');
+            }
+        }
+
+        async function loadCatalog() {
+            try {
+                const data = await api.get('/catalog');
+                catalog = data.catalog;
+            } catch (e) {
+                showToast('Failed to load catalog: ' + e.message, 'error');
+            }
+        }
+
+        async function loadAccessories() {
+            try {
+                const data = await api.get('/accessories');
+                accessories = data.accessories;
+            } catch (e) {
+                showToast('Failed to load accessories: ' + e.message, 'error');
+            }
+        }
+
+        async function loadFinanceCompanies() {
+            try {
+                const data = await api.get('/finance-companies');
+                financeCompanies = data.finance_companies;
+                const sel = document.getElementById('financeCompany');
+                financeCompanies.forEach(f => {
+                    const opt = document.createElement('option');
+                    opt.value = f.id;
+                    opt.textContent = f.name;
+                    sel.appendChild(opt);
+                });
+            } catch { }
+        }
+
+        // ── Rep render ────────────────────────────────────────────────────────────────
+        function renderReps(reps) {
+            const grid = document.getElementById('repGrid');
+            grid.innerHTML = '';
+            reps.forEach(rep => {
+                const card = document.createElement('div');
+                card.className = 'rep-card';
+                card.dataset.repId = rep.id;
+                card.innerHTML = `<span class="emoji">${rep.emoji}</span><div class="name">${rep.name}</div>`;
+                card.addEventListener('click', () => selectRep(rep, card));
+                grid.appendChild(card);
+            });
+        }
+
+        function selectRep(rep, card) {
+            document.querySelectorAll('.rep-card').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+            selectedRep = rep;
+            setTimeout(() => goStep(2), 250);
+        }
+
+        // ── Catalog render ────────────────────────────────────────────────────────────
+        let activeCategory = 'All';
+
+        function renderCatalog(filter) {
+            const container = document.getElementById('vehicleList');
+            document.getElementById('vehicleLoading').classList.add('hidden');
+            container.innerHTML = '';
+
+            Object.entries(catalog).forEach(([cat, vehicles]) => {
+                if (filter && filter !== 'All' && cat !== filter) return;
+                vehicles.forEach(vehicle => {
+                    const card = document.createElement('div');
+                    card.className = 'vehicle-card';
+                    const priceRange = vehicle.variants.length
+                        ? `${formatCurrency(Math.min(...vehicle.variants.map(v => v.ex_showroom_price)))} – ${formatCurrency(Math.max(...vehicle.variants.map(v => v.ex_showroom_price)))}`
+                        : '';
+                    card.innerHTML = `
+        <div class="vehicle-header">
+          <div><div class="vehicle-name">${vehicle.brand} ${vehicle.model}</div><div class="vehicle-price-range">${priceRange}</div></div>
+          <div class="vehicle-chevron">▼</div>
+        </div>
+        <div class="variant-list hidden" id="vl-${vehicle.id}">
+          ${vehicle.variants.map(v => `
+            <div class="variant-option" onclick="selectVariant(${vehicle.id}, ${v.id})">
+              <input type="radio" name="variantRadio" value="${v.id}" id="vr-${v.id}">
+              <div class="variant-info">
+                <div class="variant-name-text">${v.name}</div>
+                <div class="variant-price">${formatCurrency(v.ex_showroom_price)}</div>
+                <div class="variant-tags">
+                  ${v.fuel_type === 'electric'
+                            ? `<span class="tag tag-ev">⚡ Road Tax Exempt</span>`
+                            : `<span class="tag tag-road-tax">${(v.road_tax_rate * 100).toFixed(0)}% Road Tax — ${formatCurrency(v.road_tax_amount)}</span>`
+                        }
+                </div>
+              </div>
+            </div>`).join('')}
+        </div>`;
+                    card.querySelector('.vehicle-header').addEventListener('click', () => {
+                        const vl = document.getElementById(`vl-${vehicle.id}`);
+                        vl.classList.toggle('hidden');
+                        card.classList.toggle('expanded');
+                    });
+                    container.appendChild(card);
+                });
+            });
+        }
+
+        function renderCategoryPills() {
+            const pills = document.getElementById('categoryPills');
+            const cats = ['All', ...Object.keys(catalog)];
+            pills.innerHTML = cats.map(c => `<div class="pill${c === 'All' ? ' active' : ''}" onclick="filterCat('${c}',this)">${c}</div>`).join('');
+        }
+
+        window.filterCat = (cat, el) => {
+            document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+            el.classList.add('active');
+            activeCategory = cat;
+            renderCatalog(cat === 'All' ? null : cat);
+        };
+
+        window.selectVariant = (vehicleId, variantId) => {
+            document.getElementById(`vr-${variantId}`).checked = true;
+            let found = null;
+            Object.values(catalog).forEach(vehicles => {
+                vehicles.forEach(v => {
+                    if (v.id === vehicleId) {
+                        found = { vehicle: v, variant: v.variants.find(vv => vv.id === variantId) };
+                    }
+                });
+            });
+            if (found) {
+                selectedVariant = { ...found.variant, vehicle: found.vehicle };
+                setTimeout(() => goStep(4), 200);
+            }
+        };
+
+        // ── Accessories render ────────────────────────────────────────────────────────
+        function renderAccessories() {
+            const container = document.getElementById('accessoriesList');
+            container.innerHTML = '';
+            Object.entries(accessories).forEach(([cat, items]) => {
+                container.innerHTML += `<div class="acc-group-title">${cat}</div>`;
+                items.forEach(item => {
+                    const isMandatory = item.is_mandatory;
+                    const div = document.createElement('div');
+                    div.className = `acc-item${isMandatory ? ' mandatory' : ''}`;
+                    div.innerHTML = `
+        <input type="checkbox" id="acc-${item.id}" value="${item.id}"
+          ${isMandatory ? 'checked disabled' : ''}
+          onchange="recalc()">
+        <label class="acc-item-name" for="acc-${item.id}">${item.name}</label>
+        <input type="number" class="acc-price-input" id="acc-price-${item.id}"
+          value="${item.default_price / 100}" min="0" step="1" onchange="recalc()">`;
+                    container.appendChild(div);
+                });
+            });
+            recalc();
+        }
+
+        // ── Step navigation ───────────────────────────────────────────────────────────
+        window.goStep = (n) => {
+            if (n === 2) {
+                const name = document.getElementById('custName').value.trim();
+                const phone = document.getElementById('custPhone').value.trim();
+                const addr = document.getElementById('custAddress').value.trim();
+                if (currentStep === 2 && n === 3) {
+                    if (!name || !phone || !addr) { showToast('Please fill all customer fields', 'warning'); return; }
+                    if (!/^\d{10}$/.test(phone)) { showToast('Phone number must be exactly 10 digits', 'warning'); return; }
+                }
+            }
+            if (n === 3 && currentStep > 3) { n = 3; }
+
+            ['step1', 'step2', 'step3', 'step4'].forEach((id, idx) => {
+                document.getElementById(id).classList.toggle('hidden', idx + 1 !== n);
+            });
+
+            document.getElementById('priceSummary').classList.toggle('hidden', n !== 4);
+            // Show stats widget only on Step 1
+            const swWrap = document.getElementById('statsWidgetWrap');
+            if (swWrap) swWrap.style.display = (n === 1) ? '' : 'none';
+
+            for (let i = 1; i <= 4; i++) {
+                const si = document.getElementById(`si-${i}`);
+                si.className = 'step-item' + (i === n ? ' active' : i < n ? ' done' : '');
+            }
+
+            if (n === 3) { renderCategoryPills(); renderCatalog(null); }
+            if (n === 4) { populateStep4(); renderAccessories(); }
+            currentStep = n;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+        function populateStep4() {
+            if (!selectedVariant) return;
+            const v = selectedVariant;
+            document.getElementById('disp_ex_showroom').textContent = formatCurrency(v.ex_showroom_price);
+
+            if (v.fuel_type === 'electric') {
+                document.getElementById('rowRoadTax').classList.add('hidden');
+                document.getElementById('rowRoadTaxExempt').classList.remove('hidden');
+                document.getElementById('inp_road_tax').value = 0;
+            } else {
+                document.getElementById('rowRoadTax').classList.remove('hidden');
+                document.getElementById('rowRoadTaxExempt').classList.add('hidden');
+                document.getElementById('inp_road_tax').value = Math.round(v.road_tax_amount / 100);
+                document.getElementById('roadTaxLabel').textContent = `Road Tax (${(v.road_tax_rate * 100).toFixed(0)}%)`;
+            }
+            recalc();
+        }
+
+        // ── Recalculate totals ────────────────────────────────────────────────────────
+        window.recalc = () => {
+            if (!selectedVariant) return;
+            const rupees = (id) => (parseFloat(document.getElementById(id)?.value) || 0);
+            const paiseOf = (id) => Math.round(rupees(id) * 100);
+
+            const ex = selectedVariant.ex_showroom_price;
+            const rt = selectedVariant.fuel_type === 'electric' ? 0 : paiseOf('inp_road_tax');
+            const reg = paiseOf('inp_reg_fee');
+            const hsrp = paiseOf('inp_hsrp');
+            const sc = paiseOf('inp_smart_card');
+            const ft = 5000; // FASTag always 50 rupees
+            const ins = paiseOf('insPremium');
+            const hypo = document.getElementById('toggleFinance').checked ? paiseOf('hypothecation') : 0;
+            const warr = document.getElementById('toggleWarranty').checked ? paiseOf('warrantyPrice') : 0;
+
+            let accTotal = 0;
+            Object.values(accessories).forEach(items => {
+                items.forEach(item => {
+                    const cb = document.getElementById(`acc-${item.id}`);
+                    if (cb?.checked) {
+                        const price = parseFloat(document.getElementById(`acc-price-${item.id}`)?.value || 0);
+                        accTotal += Math.round(price * 100);
+                    }
+                });
+            });
+
+            const total = ex + rt + reg + hsrp + sc + ft + ins + hypo + warr + accTotal;
+
+            const fc = formatCurrency;
+            const rtRate = selectedVariant.road_tax_rate;
+            document.getElementById('summaryTotal').textContent = fc(total);
+            document.getElementById('br_ex').textContent = fc(ex);
+            document.getElementById('br_rt').textContent = selectedVariant.fuel_type === 'electric' ? '₹0' : fc(rt);
+            document.getElementById('br_rt_label').textContent = selectedVariant.fuel_type === 'electric' ? 'Road Tax' : `Road Tax (${(rtRate * 100).toFixed(0)}%)`;
+            document.getElementById('br_reg').textContent = fc(reg);
+            document.getElementById('br_hsrp').textContent = fc(hsrp);
+            document.getElementById('br_smart').textContent = fc(sc);
+            document.getElementById('br_fastag').textContent = fc(ft);
+            document.getElementById('br_ins').textContent = fc(ins);
+            document.getElementById('br_warranty').textContent = fc(warr);
+            document.getElementById('br_acc').textContent = fc(accTotal);
+            document.getElementById('br_total').textContent = fc(total);
+
+            const hypoRow = document.getElementById('br_hypo_row');
+            const hypoVal = document.getElementById('br_hypo');
+            if (hypo > 0) { hypoRow.classList.remove('hidden'); hypoVal.textContent = fc(hypo); }
+            else { hypoRow.classList.add('hidden'); }
+
+            document.getElementById('br_warranty_row').classList.toggle('hidden', warr === 0);
+            document.getElementById('br_acc_row').classList.toggle('hidden', accTotal === 0);
+
+            document.getElementById('confirmText').textContent =
+                `Submit quotation for ${formatCurrency(total)} to the owner for approval?`;
+        };
+
+        // ── Toggle sections ───────────────────────────────────────────────────────────
+        window.toggleSection = (sec) => {
+            const sectionMap = { finance: 'financeSection', warranty: 'warrantySection' };
+            const el = document.getElementById(sectionMap[sec]);
+            if (el) el.classList.toggle('hidden');
+            recalc();
+        };
+
+        // ── Summary expand ────────────────────────────────────────────────────────────
+        window.toggleSummary = () => {
+            summaryExpanded = !summaryExpanded;
+            document.getElementById('priceSummary').classList.toggle('expanded', summaryExpanded);
+            document.getElementById('summaryChevron').textContent = summaryExpanded ? '▼' : '▲';
+        };
+
+        // ── Confirm & Submit ──────────────────────────────────────────────────────────
+        window.confirmSubmit = () => {
+            const name = document.getElementById('custName').value.trim();
+            const phone = document.getElementById('custPhone').value.trim();
+            const addr = document.getElementById('custAddress').value.trim();
+            const ins = document.getElementById('insPremium').value;
+            if (!name || !phone || !addr) { showToast('Customer details incomplete', 'warning'); return; }
+            if (!selectedVariant) { showToast('Please select a vehicle variant', 'warning'); return; }
+            if (!document.getElementById('insCompany').value.trim()) { showToast('Please enter insurance company name', 'warning'); return; }
+            if (!ins || parseFloat(ins) < 0) { showToast('Please enter insurance premium', 'warning'); return; }
+            document.getElementById('confirmBackdrop').classList.add('open');
+        };
+
+        window.closeConfirm = () => {
+            document.getElementById('confirmBackdrop').classList.remove('open');
+        };
+
+        window.submitQuotation = async () => {
+            const btn = document.getElementById('btnConfirmSubmit');
+            btn.disabled = true;
+            btn.textContent = 'Submitting…';
+
+            const paise = (id) => Math.round((parseFloat(document.getElementById(id)?.value) || 0) * 100);
+            const accItems = [];
+            Object.values(accessories).forEach(items => {
+                items.forEach(item => {
+                    const cb = document.getElementById(`acc-${item.id}`);
+                    if (cb?.checked) {
+                        const price = Math.round((parseFloat(document.getElementById(`acc-price-${item.id}`)?.value) || 0) * 100);
+                        accItems.push({ accessory_id: item.id, name: item.name, price_at_time: price });
+                    }
+                });
+            });
+
+            const financeToggle = document.getElementById('toggleFinance').checked;
+            const warrantyToggle = document.getElementById('toggleWarranty').checked;
+            const financeCompanyId = financeToggle ? parseInt(document.getElementById('financeCompany').value) || null : null;
+
+            const body = {
+                rep_id: selectedRep.id,
+                customer_name: document.getElementById('custName').value.trim(),
+                customer_phone: document.getElementById('custPhone').value.trim(),
+                customer_address: document.getElementById('custAddress').value.trim(),
+                variant_id: selectedVariant.id,
+                registration_fee: paise('inp_reg_fee'),
+                hsrp_charges: paise('inp_hsrp'),
+                smart_card_rc: paise('inp_smart_card'),
+                fasstag: 5000,
+                insurance_premium: paise('insPremium'),
+                insurance_company: document.getElementById('insCompany').value.trim(),
+                insurance_years: parseInt(document.querySelector('input[name="insDuration"]:checked')?.value || '1'),
+                finance_company_id: financeCompanyId,
+                hypothecation_charges: financeToggle ? paise('hypothecation') : 0,
+                extended_warranty_price: warrantyToggle ? paise('warrantyPrice') : 0,
+                extended_warranty_years: warrantyToggle ? parseInt(document.querySelector('input[name="warrantyYears"]:checked')?.value || '1') : 0,
+                accessories: accItems,
+            };
+
+            try {
+                const res = await api.post('/quotations', body);
+                closeConfirm();
+                document.getElementById('successQuoteNum').textContent = res.quote_number;
+                ['step4'].forEach(id => document.getElementById(id).classList.add('hidden'));
+                document.getElementById('priceSummary').classList.add('hidden');
+                document.getElementById('stepSuccess').classList.remove('hidden');
+                document.getElementById('btnNewQuote').style.display = 'block';
+                document.getElementById('stepIndicator').classList.add('hidden');
+            } catch (e) {
+                showToast('Submission failed: ' + e.message, 'error');
+                btn.disabled = false;
+                btn.textContent = 'Confirm →';
+            }
+        };
+
+        // ── Reset ─────────────────────────────────────────────────────────────────────
+        window.resetApp = () => {
+            selectedRep = null;
+            selectedVariant = null;
+            currentStep = 1;
+            summaryExpanded = false;
+            document.getElementById('custName').value = '';
+            document.getElementById('custPhone').value = '';
+            document.getElementById('custAddress').value = '';
+            document.getElementById('stepSuccess').classList.add('hidden');
+            document.getElementById('btnNewQuote').style.display = 'none';
+            document.getElementById('stepIndicator').classList.remove('hidden');
+            document.querySelectorAll('.rep-card').forEach(c => c.classList.remove('selected'));
+            goStep(1);
+        };
+
+        init();
+    </script>
+
+    <script src="/assets/stats-widget.js"></script>
+    <script>
+        // Defer so widget does not race with page init Supabase calls
+        setTimeout(function() { initStatsWidget('stats-widget-container'); }, 600);
+    </script>
+</body>
+
+</html>

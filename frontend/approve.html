@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TVS Alwar – Owner Approvals</title>
+    <meta name="description" content="Owner approval queue for Pakhi TVS Alwar Showroom quotations.">
+    <link rel="stylesheet" href="/assets/style.css">
+    <meta name="theme-color" content="#1A1A2E">
+</head>
+
+<body>
+
+    <!-- PIN SCREEN -->
+    <div class="pin-screen" id="pinScreen">
+        <div class="pin-logo">🔐</div>
+        <div class="pin-title">Pakhi TVS Alwar Showroom</div>
+        <div class="pin-subtitle">Enter your 4-digit Owner PIN</div>
+        <div class="pin-boxes">
+            <input class="pin-box" type="password" inputmode="numeric" maxlength="1" id="p0" oninput="pinInput(0)"
+                onkeydown="pinKey(event,0)">
+            <input class="pin-box" type="password" inputmode="numeric" maxlength="1" id="p1" oninput="pinInput(1)"
+                onkeydown="pinKey(event,1)">
+            <input class="pin-box" type="password" inputmode="numeric" maxlength="1" id="p2" oninput="pinInput(2)"
+                onkeydown="pinKey(event,2)">
+            <input class="pin-box" type="password" inputmode="numeric" maxlength="1" id="p3" oninput="pinInput(3)"
+                onkeydown="pinKey(event,3)">
+        </div>
+        <div class="pin-error hidden" id="pinError">Incorrect PIN. Try again.</div>
+    </div>
+
+    <!-- MAIN DASHBOARD (hidden until PIN ok) -->
+    <div id="mainDashboard" class="hidden">
+
+        <header class="page-header">
+            <div class="header-row">
+                <div>
+                    <h1>TVS Alwar – Approvals</h1>
+                    <div class="subtitle">Owner Dashboard</div>
+                </div>
+                <button class="btn btn-ghost btn-sm" style="color:#fff;font-size:12px"
+                    onclick="logout()">Logout</button>
+            </div>
+        </header>
+
+        <!-- Shared stats widget -->
+        <div class="container" style="padding-bottom:0">
+            <div id="stats-widget-container"></div>
+        </div>
+
+        <!-- Tab bar with counts on all tabs -->
+        <div class="tab-bar">
+            <div class="tab-item active" onclick="setTab('pending_approval',this)">Pending <span class="tab-count"
+                    id="badgePending">0</span></div>
+            <div class="tab-item" onclick="setTab('approved',this)">Approved <span class="tab-count"
+                    id="badgeApproved">0</span></div>
+            <div class="tab-item" onclick="setTab('rejected',this)">Rejected <span class="tab-count"
+                    id="badgeRejected">0</span></div>
+            <div class="tab-item" onclick="setTab('',this)">All <span class="tab-count" id="badgeAll">0</span></div>
+        </div>
+
+        <!-- Date filter pills -->
+        <div class="date-filter-strip" id="approveFilterStrip">
+            <div class="df-pill" onclick="setApproveFilter('today',this)">Today</div>
+            <div class="df-pill" onclick="setApproveFilter('week',this)">This Week</div>
+            <div class="df-pill" onclick="setApproveFilter('month',this)">This Month</div>
+            <div class="df-pill active" onclick="setApproveFilter('all',this)">All Time</div>
+        </div>
+
+        <div class="container" style="padding-top:12px;padding-bottom:120px">
+            <div id="quoteList"></div>
+        </div>
+    </div>
+
+    <!-- DETAIL OVERLAY -->
+    <div class="overlay" id="detailOverlay">
+        <div class="overlay-panel" id="overlayContent"></div>
+    </div>
+
+    <!-- REJECT BOTTOM SHEET -->
+    <div class="bottom-sheet-backdrop" id="rejectBackdrop">
+        <div class="bottom-sheet" style="position:fixed;bottom:0;left:0;right:0;max-width:600px;margin:0 auto">
+            <div class="bottom-sheet-handle"></div>
+            <h3>Reason for Rejection</h3>
+            <div class="field"><textarea id="rejectReason" rows="3"
+                    placeholder="Enter reason for rejection…"></textarea></div>
+            <div style="display:flex;gap:10px">
+                <button class="btn btn-secondary" style="flex:1" onclick="closeRejectSheet()">Cancel</button>
+                <button class="btn btn-danger" style="flex:1" id="btnConfirmReject" onclick="confirmReject()">Confirm
+                    Rejection</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { formatCurrency, formatDate, formatDateTime, timeAgo, statusBadge, showToast, api, connectSSE } from '/assets/app.js';
+
+        // ── Session ───────────────────────────────────────────────────────────────────
+        const SESSION_KEY = 'tvs_owner_pin_expiry';
+
+        function checkSession() {
+            const expiry = sessionStorage.getItem(SESSION_KEY);
+            if (expiry && Date.now() < parseInt(expiry)) {
+                showDashboard();
+                return true;
+            }
+            return false;
+        }
+
+        function saveSession() {
+            sessionStorage.setItem(SESSION_KEY, Date.now() + 30 * 60 * 1000); // 30 min
+        }
+
+        window.logout = () => {
+            sessionStorage.removeItem(SESSION_KEY);
+            document.getElementById('mainDashboard').classList.add('hidden');
+            document.getElementById('pinScreen').classList.remove('hidden');
+            clearPins();
+        };
+
+        // ── PIN handling ──────────────────────────────────────────────────────────────
+        let pinAttempting = false;
+
+        window.pinInput = (idx) => {
+            const val = document.getElementById(`p${idx}`).value;
+            if (val && idx < 3) document.getElementById(`p${idx + 1}`).focus();
+            if (idx === 3 && val) checkPin();
+        };
+
+        window.pinKey = (e, idx) => {
+            if (e.key === 'Backspace' && !document.getElementById(`p${idx}`).value && idx > 0) {
+                document.getElementById(`p${idx - 1}`).focus();
+            }
+        };
+
+        function clearPins() {
+            [0, 1, 2, 3].forEach(i => document.getElementById(`p${i}`).value = '');
+            document.getElementById('p0').focus();
+        }
+
+        async function checkPin() {
+            if (pinAttempting) return;
+            pinAttempting = true;
+            const pin = [0, 1, 2, 3].map(i => document.getElementById(`p${i}`).value).join('');
+
+            // We verify PIN via a dummy approve attempt is not ideal; instead try a test quotation.
+            // Simpler: we store OWNER_PIN only on server. We'll verify on actual approve/reject.
+            // For session we just check length = 4 digits and verify on first action.
+            // Real PIN validation happens server-side on approve/reject.
+            if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
+                showPinError();
+                pinAttempting = false;
+                return;
+            }
+
+            // Store pin temporarily for this session (only in sessionStorage, not sent until an action)
+            sessionStorage.setItem('tvs_owner_pin', pin);
+            saveSession();
+            showDashboard();
+            pinAttempting = false;
+        }
+
+        function showPinError() {
+            const err = document.getElementById('pinError');
+            err.classList.remove('hidden');
+            [0, 1, 2, 3].forEach(i => document.getElementById(`p${i}`).classList.add('pin-error-anim'));
+            setTimeout(() => {
+                err.classList.add('hidden');
+                clearPins();
+                [0, 1, 2, 3].forEach(i => document.getElementById(`p${i}`).classList.remove('pin-error-anim'));
+            }, 1200);
+        }
+
+        // ── Dashboard ─────────────────────────────────────────────────────────────────
+        let currentTab = 'pending_approval';
+        let allQuotations = [];
+        let currentQuotationId = null;
+        let currentDateFilter = 'all'; // Default: All Time so no pending quotes are missed
+
+        window.setApproveFilter = (filter, el) => {
+            document.querySelectorAll('#approveFilterStrip .df-pill').forEach(p => p.classList.remove('active'));
+            el.classList.add('active');
+            currentDateFilter = filter;
+            loadQuotations();
+        };
+
+        window.setTab = (status, el) => {
+            document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+            el.classList.add('active');
+            currentTab = status;
+            renderList();
+        };
+
+        function showDashboard() {
+            document.getElementById('pinScreen').classList.add('hidden');
+            document.getElementById('mainDashboard').classList.remove('hidden');
+            loadQuotations();
+            connectSSE(handleSSE, loadQuotations);
+            // Init stats widget (deferred until after PIN)
+            if (typeof initWidgetOnDashboard === 'function') initWidgetOnDashboard();
+        }
+
+        async function loadQuotations() {
+            try {
+                const dateParam = (currentDateFilter && currentDateFilter !== 'all')
+                    ? `&date=${currentDateFilter}` : '';
+                const data = await api.get(`/quotations?${dateParam}`);
+                allQuotations = data.quotations || [];
+                updateStats();
+                renderList();
+            } catch (e) {
+                showToast('Failed to load quotations: ' + e.message, 'error');
+            }
+        }
+
+        function updateStats() {
+            const count = (s) => allQuotations.filter(q => q.status === s).length;
+            document.getElementById('badgePending').textContent = count('pending_approval');
+            document.getElementById('badgeApproved').textContent = count('approved');
+            document.getElementById('badgeRejected').textContent = count('rejected');
+            document.getElementById('badgeAll').textContent = allQuotations.length;
+        }
+
+        function renderList() {
+            const list = document.getElementById('quoteList');
+            const filtered = currentTab ? allQuotations.filter(q => q.status === currentTab) : allQuotations;
+            if (filtered.length === 0) {
+                list.innerHTML = `<div class="empty-state"><span class="empty-icon">📋</span><p>No quotations found</p></div>`;
+                return;
+            }
+            list.innerHTML = filtered.map(q => renderQuoteCard(q)).join('');
+        }
+
+        function renderQuoteCard(q) {
+            const v = q.variants || {};
+            const veh = v.vehicles || {};
+            const rep = q.reps || {};
+            return `
+    <div class="quote-card" onclick="openDetail(${q.id})">
+      <div class="flex-between mb-8">
+        <span>${statusBadge(q.status)}</span>
+        <span class="text-muted text-sm" data-time-ago="${q.submitted_at}">${timeAgo(q.submitted_at)}</span>
+      </div>
+      <div class="quote-customer">${q.customer_name}</div>
+      <div class="quote-vehicle">${veh.brand || ''} ${veh.model || ''} — ${v.name || ''}</div>
+      <div class="flex-between">
+        <div class="quote-amount">${formatCurrency(q.gross_amount)}</div>
+        <div class="quote-rep">${rep.emoji || ''} ${rep.name || ''}</div>
+      </div>
+      <div class="text-muted text-sm mt-8">${q.quote_number || ''} ${q.invoice_number ? '• ' + q.invoice_number : ''}</div>
+    </div>`;
+        }
+
+        // ── Detail overlay ────────────────────────────────────────────────────────────
+        window.openDetail = async (id) => {
+            currentQuotationId = id;
+            document.getElementById('detailOverlay').classList.add('open');
+            document.getElementById('overlayContent').innerHTML = `<div class="loading-center" style="min-height:60vh"><div class="spinner"></div><span>Loading…</span></div>`;
+
+            try {
+                const data = await api.get(`/quotations/${id}`);
+                const q = data.quotation;
+                renderDetail(q);
+            } catch (e) {
+                document.getElementById('overlayContent').innerHTML = `<div class="loading-center"><p>Error: ${e.message}</p></div>`;
+            }
+        };
+
+        window.closeDetail = () => {
+            document.getElementById('detailOverlay').classList.remove('open');
+            currentQuotationId = null;
+        };
+
+        function renderDetail(q) {
+            const v = q.variant || {};
+            const veh = (v.vehicles || {});
+            const rep = q.rep || {};
+            const fc = q.finance_company || {};
+            const accs = q.accessories_list || [];
+            const isPending = q.status === 'pending_approval';
+
+            const row = (label, value) => `<div class="detail-row"><span class="dr-label">${label}</span><span class="dr-value">${value}</span></div>`;
+
+            let html = `
+    <div class="overlay-header">
+      <div class="overlay-title">${q.quote_number || ''}</div>
+      <div class="overlay-close" onclick="closeDetail()">✕</div>
+    </div>
+
+    <!-- Status -->
+    <div class="detail-section">
+      ${statusBadge(q.status)}
+      ${q.invoice_number ? `<span style="margin-left:8px;color:var(--text-muted);font-size:13px">${q.invoice_number}</span>` : ''}
+    </div>
+
+    <!-- Customer -->
+    <div class="detail-section">
+      <div class="detail-label">Customer</div>
+      ${row('Name', q.customer_name)}
+      ${row('Phone', `<a href="tel:${q.customer_phone}">${q.customer_phone}</a>`)}
+      ${row('Address', q.customer_address)}
+    </div>
+
+    <!-- Vehicle -->
+    <div class="detail-section">
+      <div class="detail-label">Vehicle</div>
+      ${row('Model', `${veh.brand || ''} ${veh.model || ''}`)}
+      ${row('Variant', v.name || '')}
+      ${row('Ex-showroom', formatCurrency(q.ex_showroom_price))}
+    </div>
+
+    <!-- Charges -->
+    <div class="detail-section">
+      <div class="detail-label">Charges Breakdown</div>
+      ${row(`Road Tax (${(q.road_tax_rate * 100).toFixed(0)}%)`, formatCurrency(q.road_tax_amount))}
+      ${row('Registration', formatCurrency(q.registration_fee))}
+      ${row('HSRP Plate', formatCurrency(q.hsrp_charges))}
+      ${row('Smart Card RC', formatCurrency(q.smart_card_rc))}
+      ${row('FASTag', formatCurrency(q.fasstag))}
+      ${row(`Insurance (${q.insurance_company}, ${q.insurance_years}yr)`, formatCurrency(q.insurance_premium))}
+      ${q.hypothecation_charges ? row('Hypothecation', formatCurrency(q.hypothecation_charges)) : ''}
+      ${q.extended_warranty_price ? row(`Ext. Warranty (${q.extended_warranty_years}yr)`, formatCurrency(q.extended_warranty_price)) : ''}
+      ${q.accessories_total ? row('Accessories', formatCurrency(q.accessories_total)) : ''}
+      <div class="detail-row detail-total-row"><span class="dr-label">Gross Total</span><span class="dr-value">${formatCurrency(q.gross_amount)}</span></div>
+    </div>`;
+
+            // Accessories list
+            if (accs.length) {
+                html += `<div class="detail-section"><div class="detail-label">Accessories</div>`;
+                accs.forEach(a => { html += row(a.name, formatCurrency(a.price_at_time)); });
+                html += `</div>`;
+            }
+
+            // Sales rep
+            html += `<div class="detail-section">${row('Sales Rep', `${rep.emoji || ''} ${rep.name || ''}`)}</div>`;
+
+            // Finance
+            if (fc.name) {
+                html += `<div class="detail-section"><div class="detail-label">Finance</div>${row('Company', fc.name)}</div>`;
+            }
+
+            // Discount section (only for pending approval)
+            if (isPending) {
+                html += `
+    <div class="detail-section">
+      <div class="detail-label">Apply Discount (Optional)</div>
+      <div class="discount-card">
+        <div class="discount-mode-tabs">
+          <div class="discount-tab active" id="tabAmt" onclick="switchDiscountMode('amount')">Amount (₹)</div>
+          <div class="discount-tab" id="tabPct" onclick="switchDiscountMode('percent')">Percentage (%)</div>
+        </div>
+        <div id="discountAmtField" class="field">
+          <label for="discountAmount">Discount Amount (₹)</label>
+          <input type="number" id="discountAmount" placeholder="0" min="0" step="1" oninput="updateFinalAmount(${q.gross_amount})">
+        </div>
+        <div id="discountPctField" class="field hidden">
+          <label for="discountPct">Discount (%)</label>
+          <input type="number" id="discountPct" placeholder="0" min="0" max="100" step="0.1" oninput="updateFinalAmountPct(${q.gross_amount})">
+        </div>
+        <div class="field"><label for="discountReason">Reason (optional)</label><input type="text" id="discountReason" placeholder="e.g. Exchange offer"></div>
+        <div class="final-amount-display">
+          <div class="final-amount-label">FINAL AMOUNT</div>
+          <div class="final-amount-value" id="finalAmtDisplay">${formatCurrency(q.gross_amount)}</div>
+        </div>
+      </div>
+    </div>`;
+
+                html += `
+    <div class="bottom-action-bar">
+      <button class="btn btn-danger" style="flex:1" onclick="openRejectSheet()">Reject</button>
+      <button class="btn btn-success" style="flex:2" id="btnApprove" onclick="doApprove(${q.id}, ${q.gross_amount})">Approve ₹?</button>
+    </div>`;
+            } else if (q.status === 'approved') {
+                html += `
+    <div class="detail-section">
+      ${row('Discount', formatCurrency(q.discount_amount))}
+      ${q.discount_reason ? row('Reason', q.discount_reason) : ''}
+      <div class="detail-row detail-total-row"><span class="dr-label">Final Amount</span><span class="dr-value">${formatCurrency(q.final_amount)}</span></div>
+    </div>`;
+            }
+
+            html += `<div style="height:100px"></div>`;
+            document.getElementById('overlayContent').innerHTML = html;
+
+            if (isPending) {
+                updateFinalAmount(q.gross_amount);
+            }
+        }
+
+        let discountMode = 'amount';
+        window.switchDiscountMode = (mode) => {
+            discountMode = mode;
+            document.getElementById('tabAmt').classList.toggle('active', mode === 'amount');
+            document.getElementById('tabPct').classList.toggle('active', mode === 'percent');
+            document.getElementById('discountAmtField').classList.toggle('hidden', mode !== 'amount');
+            document.getElementById('discountPctField').classList.toggle('hidden', mode !== 'percent');
+        };
+
+        window.updateFinalAmount = (grossPaise) => {
+            const discRupees = parseFloat(document.getElementById('discountAmount')?.value || 0);
+            const discPaise = Math.round(discRupees * 100);
+            const final = Math.max(0, grossPaise - discPaise);
+            document.getElementById('finalAmtDisplay').textContent = formatCurrency(final);
+            const btn = document.getElementById('btnApprove');
+            if (btn) btn.textContent = `Approve ${formatCurrency(final)}`;
+        };
+
+        window.updateFinalAmountPct = (grossPaise) => {
+            const pct = parseFloat(document.getElementById('discountPct')?.value || 0);
+            const discPaise = Math.round(grossPaise * pct / 100);
+            const final = Math.max(0, grossPaise - discPaise);
+            document.getElementById('finalAmtDisplay').textContent = formatCurrency(final);
+            const btn = document.getElementById('btnApprove');
+            if (btn) btn.textContent = `Approve ${formatCurrency(final)}`;
+        };
+
+        // ── Approve ────────────────────────────────────────────────────────────────────
+        window.doApprove = async (id, grossPaise) => {
+            const btn = document.getElementById('btnApprove');
+
+            let discountPaise = 0;
+            if (discountMode === 'amount') {
+                discountPaise = Math.round((parseFloat(document.getElementById('discountAmount')?.value || 0)) * 100);
+            } else {
+                const pct = parseFloat(document.getElementById('discountPct')?.value || 0);
+                discountPaise = Math.round(grossPaise * pct / 100);
+            }
+            if (discountPaise < 0 || grossPaise - discountPaise < 0) {
+                showToast('Discount cannot exceed the total amount', 'warning');
+                return;
+            }
+
+            const pin = sessionStorage.getItem('tvs_owner_pin') || '';
+            btn.disabled = true;
+            btn.textContent = 'Approving…';
+
+            try {
+                const res = await api.post(`/quotations/${id}/approve`, {
+                    pin,
+                    discount_amount: discountPaise,
+                    discount_reason: document.getElementById('discountReason')?.value?.trim() || null,
+                });
+                closeDetail();
+                showToast(`✅ Approved! Invoice ${res.invoice_number}`, 'success', 5000);
+                await loadQuotations();
+            } catch (e) {
+                if (e.message.includes('Incorrect PIN')) {
+                    showToast('Incorrect PIN — please logout and re-enter', 'error');
+                    sessionStorage.removeItem('tvs_owner_pin');
+                } else {
+                    showToast('Approval failed: ' + e.message, 'error');
+                }
+                btn.disabled = false;
+                btn.textContent = 'Approve';
+            }
+        };
+
+        // ── Reject ─────────────────────────────────────────────────────────────────────
+        window.openRejectSheet = () => document.getElementById('rejectBackdrop').classList.add('open');
+        window.closeRejectSheet = () => { document.getElementById('rejectBackdrop').classList.remove('open'); document.getElementById('rejectReason').value = ''; };
+
+        window.confirmReject = async () => {
+            const reason = document.getElementById('rejectReason').value.trim();
+            if (!reason) { showToast('Please enter a rejection reason', 'warning'); return; }
+            const pin = sessionStorage.getItem('tvs_owner_pin') || '';
+            const btn = document.getElementById('btnConfirmReject');
+            btn.disabled = true;
+
+            try {
+                await api.post(`/quotations/${currentQuotationId}/reject`, { pin, rejection_reason: reason });
+                closeRejectSheet();
+                closeDetail();
+                showToast('❌ Quotation rejected — sales rep notified', 'warning', 4000);
+                await loadQuotations();
+            } catch (e) {
+                if (e.message.includes('Incorrect PIN')) {
+                    showToast('Incorrect PIN — please logout and re-enter', 'error');
+                    sessionStorage.removeItem('tvs_owner_pin');
+                } else {
+                    showToast('Rejection failed: ' + e.message, 'error');
+                }
+                btn.disabled = false;
+            }
+        };
+
+        // ── SSE ────────────────────────────────────────────────────────────────────────
+        function handleSSE(eventType, data) {
+            if (eventType === 'quotation_submitted') {
+                showToast(`🔔 New quote from ${data.rep_name} — ${formatCurrency(data.gross_amount)}`, 'info', 6000);
+                loadQuotations();
+            }
+        }
+
+        // ── Init ──────────────────────────────────────────────────────────────────────
+        document.getElementById('p0').focus();
+        if (!checkSession()) {
+            // stay on PIN screen
+        }
+    </script>
+
+    <script src="/assets/stats-widget.js"></script>
+    <script>
+        // Init widget only after PIN is verified — showDashboard() already connects SSE
+        // We expose a hook so initStatsWidget is called from showDashboard
+        function initWidgetOnDashboard() {
+            if (!document.getElementById('stats-widget-container')._swInited) {
+                document.getElementById('stats-widget-container')._swInited = true;
+                initStatsWidget('stats-widget-container');
+            }
+        }
+    </script>
+</body>
+
+</html>

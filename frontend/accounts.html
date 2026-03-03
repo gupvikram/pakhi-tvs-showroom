@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TVS Alwar – Accounts</title>
+    <meta name="description" content="Accounts dashboard for Pakhi TVS Alwar Showroom — export to Busy.">
+    <link rel="stylesheet" href="/assets/style.css">
+    <meta name="theme-color" content="#1A1A2E">
+</head>
+
+<body>
+
+    <header class="page-header">
+        <div class="header-row">
+            <div>
+                <h1>Pakhi TVS Alwar Showroom</h1>
+                <div class="subtitle">Accounts — Busy Export</div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Shared stats widget -->
+    <div class="container" style="padding-bottom:0">
+        <div id="stats-widget-container"></div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="stats-strip" id="statsStrip">
+        <div class="stat-box">
+            <div class="stat-value" id="statCount">—</div>
+            <div class="stat-label">Sales Today</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-value" id="statValue">—</div>
+            <div class="stat-label">Today ₹</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-value amber" id="statExport">—</div>
+            <div class="stat-label">Pending Export</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-value" id="statDiscount">—</div>
+            <div class="stat-label">Discounts ₹</div>
+        </div>
+    </div>
+
+    <!-- Filters + Export Toolbar -->
+    <div style="background:#fff;border-bottom:1px solid var(--border);padding:12px 16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+            <div class="pills" style="margin:0;flex-wrap:nowrap">
+                <div class="pill active" onclick="filterDate('today',this)">Today</div>
+                <div class="pill" onclick="filterDate('week',this)">This Week</div>
+                <div class="pill" onclick="filterDate('month',this)">This Month</div>
+            </div>
+            <div id="exportToolbar" class="hidden" style="display:flex;align-items:center;gap:8px">
+                <span class="text-muted text-sm" id="selectedCount">0 selected</span>
+                <button class="btn btn-primary btn-sm" id="btnBulkExport" onclick="bulkExport()">Export to Busy</button>
+                <button class="btn btn-ghost btn-sm" onclick="clearSelection()">Clear</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaderboard -->
+    <div class="container mb-16">
+        <div class="card-title mt-16 mb-8">🏆 Today's Leaderboard</div>
+        <div class="leaderboard" id="leaderboard">
+            <div class="loading-center">
+                <div class="spinner"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transactions Table -->
+    <div class="container" style="padding-top:0">
+        <div id="tableWrap">
+            <div class="loading-center">
+                <div class="spinner"></div><span>Loading transactions…</span>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { formatCurrency, formatDate, formatDateTime, timeAgo, showToast, api, connectSSE } from '/assets/app.js';
+
+        let allQuotations = [];
+        let selectedIds = new Set();
+        let currentDateFilter = 'today';
+
+        async function init() {
+            // Sequential to avoid overwhelming Supabase fresh-client connections
+            await loadStats();
+            await loadQuotations();
+            // SSE: on reconnect only reload quotations; widget handles stat refresh
+            connectSSE(handleSSE, loadQuotations);
+        }
+
+        // ── Stats & Leaderboard ───────────────────────────────────────────────────────
+        async function loadStats() {
+            try {
+                const data = await api.get(`/stats?date=${currentDateFilter}`);
+                document.getElementById('statCount').textContent = data.sales_count;
+                document.getElementById('statValue').textContent = formatCurrency(data.sales_value);
+                document.getElementById('statExport').textContent = data.pending_export_count;
+                document.getElementById('statDiscount').textContent = formatCurrency(data.total_discounts);
+
+                renderLeaderboard(data.rep_leaderboard || []);
+            } catch (e) {
+                showToast('Failed to load stats: ' + e.message, 'error');
+            }
+        }
+
+        function renderLeaderboard(reps) {
+            const lb = document.getElementById('leaderboard');
+            if (!reps.length) { lb.innerHTML = '<p class="text-muted text-sm">No sales yet.</p>'; return; }
+            const medals = ['gold', 'silver', 'bronze'];
+            lb.innerHTML = reps.map((r, i) => `
+    <div class="lb-row">
+      <div class="lb-rank ${medals[i] || ''}">${i + 1}</div>
+      <div class="lb-emoji">${r.emoji || '👤'}</div>
+      <div class="lb-name">${r.name}</div>
+      <div class="lb-stats">
+        <div class="lb-count">${r.count}</div>
+        <div class="lb-value">${formatCurrency(r.total)}</div>
+      </div>
+    </div>`).join('');
+        }
+
+        // ── Quotations Table ──────────────────────────────────────────────────────────
+        async function loadQuotations() {
+            const params = `?status=paid&date=${currentDateFilter}`;
+            // Also load exported ones
+            try {
+                const [paidData, expData] = await Promise.all([
+                    api.get('/quotations?status=paid&date=' + currentDateFilter),
+                    api.get('/quotations?status=exported&date=' + currentDateFilter),
+                ]);
+                allQuotations = [...(paidData.quotations || []), ...(expData.quotations || [])];
+                // Deduplicate by ID
+                const seen = new Set();
+                allQuotations = allQuotations.filter(q => { if (seen.has(q.id)) return false; seen.add(q.id); return true; });
+                // Sort newest first
+                allQuotations.sort((a, b) => new Date(b.paid_at || 0) - new Date(a.paid_at || 0));
+                renderTable();
+                updateStats();
+            } catch (e) {
+                showToast('Failed to load transactions: ' + e.message, 'error');
+            }
+        }
+
+        function updateStats() {
+            const pending = allQuotations.filter(q => !q.busy_exported_at).length;
+            document.getElementById('statExport').textContent = pending;
+            if (pending > 0) {
+                document.getElementById('statExport').classList.add('amber');
+            }
+        }
+
+        function renderTable() {
+            const wrap = document.getElementById('tableWrap');
+            if (!allQuotations.length) {
+                wrap.innerHTML = `<div class="empty-state"><span class="empty-icon">📊</span><p>No paid transactions for this period.</p></div>`;
+                return;
+            }
+
+            wrap.innerHTML = `
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th><input type="checkbox" id="chkAll" onchange="selectAll(this.checked)"></th>
+            <th>Date</th>
+            <th>Invoice #</th>
+            <th>Customer</th>
+            <th>Vehicle</th>
+            <th>Rep</th>
+            <th class="text-right">Gross ₹</th>
+            <th class="text-right">Discount ₹</th>
+            <th class="text-right">Final ₹</th>
+            <th>Payment</th>
+            <th>Export Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="txnTbody">
+          ${allQuotations.map(q => renderRow(q)).join('')}
+        </tbody>
+      </table>
+    </div>`;
+        }
+
+        function renderRow(q) {
+            const v = q.variants || {};
+            const veh = v.vehicles || {};
+            const rep = q.reps || {};
+            const exported = !!q.busy_exported_at;
+            return `
+    <tr id="row-${q.id}">
+      <td><input type="checkbox" class="row-check" value="${q.id}" ${exported ? 'disabled title="Already exported"' : ''} onchange="toggleSelect(${q.id}, this.checked)"></td>
+      <td>${formatDate(q.paid_at)}</td>
+      <td style="font-weight:700">${q.invoice_number || '—'}</td>
+      <td>${q.customer_name}</td>
+      <td style="white-space:normal;min-width:120px">${veh.brand || ''} ${veh.model || ''}<br><span class="text-muted text-sm">${v.name || ''}</span></td>
+      <td>${rep.emoji || ''} ${(rep.name || '').split(' ').slice(-2).join(' ')}</td>
+      <td class="amount">${formatCurrency(q.gross_amount)}</td>
+      <td>${q.discount_amount ? formatCurrency(q.discount_amount) : '—'}</td>
+      <td class="amount">${formatCurrency(q.final_amount)}</td>
+      <td>${q.payment_mode || '—'}</td>
+      <td>${exported
+                    ? `<span class="badge badge-exported">Exported<br><span style="font-weight:400;font-size:10px">${formatDate(q.busy_exported_at)}</span></span>`
+                    : `<span class="badge badge-pending_approval">Not Exported</span>`}
+      </td>
+      <td>
+        ${!exported
+                    ? `<button class="btn btn-primary btn-sm" onclick="exportSingle(${q.id})">Export</button>`
+                    : `<span class="text-muted text-sm">✓ Done</span>`}
+      </td>
+    </tr>`;
+        }
+
+        // ── Selection ─────────────────────────────────────────────────────────────────
+        window.toggleSelect = (id, checked) => {
+            if (checked) selectedIds.add(id);
+            else selectedIds.delete(id);
+            updateToolbar();
+        };
+
+        window.selectAll = (checked) => {
+            document.querySelectorAll('.row-check:not(:disabled)').forEach(cb => {
+                cb.checked = checked;
+                const id = parseInt(cb.value);
+                if (checked) selectedIds.add(id);
+                else selectedIds.delete(id);
+            });
+            updateToolbar();
+        };
+
+        window.clearSelection = () => {
+            selectedIds.clear();
+            document.querySelectorAll('.row-check').forEach(cb => cb.checked = false);
+            document.getElementById('chkAll').checked = false;
+            updateToolbar();
+        };
+
+        function updateToolbar() {
+            const n = selectedIds.size;
+            const toolbar = document.getElementById('exportToolbar');
+            if (n > 0) {
+                toolbar.classList.remove('hidden');
+                toolbar.style.display = 'flex';
+                document.getElementById('selectedCount').textContent = `${n} selected`;
+            } else {
+                toolbar.classList.add('hidden');
+            }
+        }
+
+        // ── Export ─────────────────────────────────────────────────────────────────────
+        window.exportSingle = async (id) => {
+            const today = new Date().toISOString().slice(0, 10);
+            try {
+                await api.download('/quotations/export', { quotation_ids: [id] }, `TVS_Alwar_Export_${today}.xlsx`);
+                showToast('✅ Export downloaded!', 'success');
+                await loadQuotations();
+            } catch (e) {
+                showToast('Export failed: ' + e.message, 'error');
+            }
+        };
+
+        window.bulkExport = async () => {
+            if (!selectedIds.size) return;
+            const btn = document.getElementById('btnBulkExport');
+            btn.disabled = true;
+            btn.textContent = 'Exporting…';
+            const today = new Date().toISOString().slice(0, 10);
+            try {
+                await api.download('/quotations/export', { quotation_ids: [...selectedIds] }, `TVS_Alwar_Export_${today}.xlsx`);
+                showToast(`✅ Exported ${selectedIds.size} transaction(s) to Excel`, 'success', 5000);
+                clearSelection();
+                await loadQuotations();
+            } catch (e) {
+                showToast('Export failed: ' + e.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Export to Busy';
+            }
+        };
+
+        // ── Date filter ───────────────────────────────────────────────────────────────
+        window.filterDate = (filter, el) => {
+            document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+            el.classList.add('active');
+            currentDateFilter = filter;
+            selectedIds.clear();
+            Promise.all([loadStats(), loadQuotations()]);
+        };
+
+        // ── SSE ────────────────────────────────────────────────────────────────────────
+        function handleSSE(eventType, data) {
+            if (eventType === 'quotation_paid') {
+                showToast(`💼 New sale ready for export: ${data.customer_name} — ${formatCurrency(data.final_amount)}`, 'success', 6000);
+                if (currentDateFilter === 'today') {
+                    loadQuotations(); // widget handles stat refresh via its own SSE
+                }
+            }
+        }
+
+        init();
+    </script>
+
+    <script src="/assets/stats-widget.js"></script>
+    <script>
+        // Defer 600ms so widget doesn't race with page's Supabase init calls
+        setTimeout(function () { initStatsWidget('stats-widget-container'); }, 600);
+    </script>
+</body>
+
+</html>

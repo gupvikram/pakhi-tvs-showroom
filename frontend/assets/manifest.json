@@ -1,0 +1,39 @@
+{
+    "name": "Pakhi TVS Alwar Showroom",
+    "short_name": "TVS Alwar",
+    "description": "Real-time showroom workflow for TVS Alwar dealership",
+    "start_url": "/sales",
+    "display": "standalone",
+    "background_color": "#1A1A2E",
+    "theme_color": "#C41E3A",
+    "orientation": "portrait-primary",
+    "icons": [
+        {
+            "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='32' fill='%23C41E3A'/><text x='50%' y='54%' dominant-baseline='middle' text-anchor='middle' font-size='110' font-family='Arial' font-weight='bold' fill='white'>T</text></svg>",
+            "sizes": "192x192",
+            "type": "image/svg+xml"
+        }
+    ],
+    "shortcuts": [
+        {
+            "name": "Sales",
+            "url": "/sales",
+            "description": "Create a new quotation"
+        },
+        {
+            "name": "Approve",
+            "url": "/approve",
+            "description": "Owner approval queue"
+        },
+        {
+            "name": "Cashier",
+            "url": "/cashier",
+            "description": "Collect payments"
+        },
+        {
+            "name": "Accounts",
+            "url": "/accounts",
+            "description": "Export to Busy"
+        }
+    ]
+}

@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+supabase
+python-dotenv
+openpyxl
+httpx
+python-multipart
+pydantic
+aiofiles
