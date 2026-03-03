@@ -444,24 +444,55 @@
             }
         };
 
-        // ── Accessories render ────────────────────────────────────────────────────────
+        // ── Accessories render (CRED-style card rows) ──────────────────────────────────
+        const ACC_CATS = {
+            'Aesthetics': { icon: '🎨', cls: 'acc-cat-aesthetics' },
+            'Functional': { icon: '⚙️', cls: 'acc-cat-functional' },
+            'Guards': { icon: '🛡️', cls: 'acc-cat-guards' },
+            'Mandatory': { icon: '📋', cls: 'acc-cat-mandatory' },
+        };
+
         function renderAccessories() {
             const container = document.getElementById('accessoriesList');
             container.innerHTML = '';
             Object.entries(accessories).forEach(([cat, items]) => {
-                container.innerHTML += `<div class="acc-group-title">${cat}</div>`;
+                const catInfo = ACC_CATS[cat] || { icon: '🔧', cls: 'acc-cat-other' };
+                // Category pill header
+                const header = document.createElement('div');
+                header.className = 'acc-category-header';
+                header.innerHTML = `<span class="acc-category-pill ${catInfo.cls}">${catInfo.icon} ${cat}</span>`;
+                container.appendChild(header);
+
                 items.forEach(item => {
                     const isMandatory = item.is_mandatory;
-                    const div = document.createElement('div');
-                    div.className = `acc-item${isMandatory ? ' mandatory' : ''}`;
-                    div.innerHTML = `
-        <input type="checkbox" id="acc-${item.id}" value="${item.id}"
-          ${isMandatory ? 'checked disabled' : ''}
-          onchange="recalc()">
-        <label class="acc-item-name" for="acc-${item.id}">${item.name}</label>
-        <input type="number" class="acc-price-input" id="acc-price-${item.id}"
-          value="${item.default_price / 100}" min="0" step="1" onchange="recalc()">`;
-                    container.appendChild(div);
+                    const card = document.createElement('div');
+                    card.className = `acc-item-card${isMandatory ? ' selected' : ''}`;
+                    card.id = `acc-card-${item.id}`;
+                    card.innerHTML = `
+                        <div class="acc-item-tick">${isMandatory ? '✓' : ''}</div>
+                        <div class="acc-item-info">
+                            <div class="acc-item-name">${item.name}${isMandatory ? ' <span style="font-size:10px;opacity:.6">(required)</span>' : ''}</div>
+                        </div>
+                        <div class="acc-item-price">${formatCurrency(item.default_price)}</div>
+                        <input type="hidden" id="acc-${item.id}" value="${isMandatory ? item.id : ''}">
+                        <input type="hidden" id="acc-price-${item.id}" value="${item.default_price / 100}">`;
+                    if (!isMandatory) {
+                        card.addEventListener('click', () => {
+                            const isSelected = card.classList.contains('selected');
+                            card.classList.toggle('selected');
+                            const tick = card.querySelector('.acc-item-tick');
+                            const hidden = card.querySelector(`#acc-${item.id}`);
+                            if (!isSelected) {
+                                tick.textContent = '✓';
+                                hidden.value = item.id;
+                            } else {
+                                tick.textContent = '';
+                                hidden.value = '';
+                            }
+                            recalc();
+                        });
+                    }
+                    container.appendChild(card);
                 });
             });
             recalc();
@@ -538,7 +569,9 @@
             Object.values(accessories).forEach(items => {
                 items.forEach(item => {
                     const cb = document.getElementById(`acc-${item.id}`);
-                    if (cb?.checked) {
+                    // Works for both legacy checkboxes and new hidden inputs
+                    const isSelected = cb ? (cb.type === 'checkbox' ? cb.checked : cb.value !== '') : false;
+                    if (isSelected) {
                         const price = parseFloat(document.getElementById(`acc-price-${item.id}`)?.value || 0);
                         accTotal += Math.round(price * 100);
                     }
@@ -616,7 +649,8 @@
             Object.values(accessories).forEach(items => {
                 items.forEach(item => {
                     const cb = document.getElementById(`acc-${item.id}`);
-                    if (cb?.checked) {
+                    const isSelected = cb ? (cb.type === 'checkbox' ? cb.checked : cb.value !== '') : false;
+                    if (isSelected) {
                         const price = Math.round((parseFloat(document.getElementById(`acc-price-${item.id}`)?.value) || 0) * 100);
                         accItems.push({ accessory_id: item.id, name: item.name, price_at_time: price });
                     }
@@ -685,7 +719,7 @@
     <script src="/assets/stats-widget.js"></script>
     <script>
         // Defer so widget does not race with page init Supabase calls
-        setTimeout(function() { initStatsWidget('stats-widget-container'); }, 600);
+        setTimeout(function () { initStatsWidget('stats-widget-container'); }, 600);
     </script>
 </body>
 

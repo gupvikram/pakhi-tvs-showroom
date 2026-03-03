@@ -147,7 +147,7 @@ async def _html(name: str) -> HTMLResponse:
         return HTMLResponse(await f.read())
 
 @app.get("/",        include_in_schema=False)
-async def root():        return await _html("sales.html")
+async def root():        return await _html("home.html")
 
 @app.get("/sales",   include_in_schema=False)
 async def sales():   return await _html("sales.html")

@@ -2162,3 +2162,249 @@ button,
         font-size: 13px;
     }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CRED-STYLE PREMIUM MOBILE POLISH
+   Applied globally — enhances feel without breaking existing layout
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Warmer page background ─────────────────────────────────────────── */
+@media (max-width: 768px) {
+    body {
+        background: #F5F4F2;
+    }
+
+    /* ── Deeper cards ── */
+    .card,
+    .quote-card,
+    .variant-option,
+    .detail-section,
+    .stat-box,
+    .sw-card {
+        box-shadow: 0 2px 12px rgba(0, 0, 0, .08), 0 1px 3px rgba(0, 0, 0, .06);
+    }
+
+    /* ── Bigger customer names & invoice numbers ── */
+    .quote-customer {
+        font-size: 17px;
+        font-weight: 700;
+    }
+
+    .quote-amount {
+        font-size: 20px;
+        font-weight: 800;
+    }
+
+    .invoice-number {
+        font-size: 14px;
+    }
+
+    /* ── Pill action buttons ── */
+    .btn,
+    button.btn {
+        border-radius: 14px;
+        min-height: 52px;
+        font-size: 15px;
+        font-weight: 700;
+        letter-spacing: .01em;
+    }
+
+    .btn-primary,
+    .btn-success {
+        background: linear-gradient(135deg, #C41E3A, #8B0017);
+        box-shadow: 0 4px 16px rgba(196, 30, 58, .35);
+    }
+
+    /* Tap scale feedback on all interactive cards */
+    .quote-card,
+    .variant-option,
+    .rep-card,
+    .vehicle-card,
+    .role-card {
+        transition: transform .12s ease, box-shadow .12s ease;
+    }
+
+    .quote-card:active,
+    .variant-option:active,
+    .rep-card:active,
+    .vehicle-card:active {
+        transform: scale(0.97);
+        box-shadow: 0 1px 4px rgba(0, 0, 0, .08);
+    }
+}
+
+/* ── Accessories: tappable card rows (replaces plain checkbox rows) ─── */
+.acc-category-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 0 6px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+}
+
+.acc-category-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+}
+
+/* Category pill colours */
+.acc-cat-aesthetics {
+    background: #FFF1F3;
+    color: #C41E3A;
+}
+
+.acc-cat-functional {
+    background: #EFF6FF;
+    color: #1E40AF;
+}
+
+.acc-cat-guards {
+    background: #F0FDF4;
+    color: #15803D;
+}
+
+.acc-cat-mandatory {
+    background: #FFFBEB;
+    color: #92400E;
+}
+
+.acc-cat-other {
+    background: #F5F3FF;
+    color: #6D28D9;
+}
+
+/* Card-style accessory row */
+.acc-item-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: #fff;
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: border-color .12s ease, background .12s ease, transform .1s ease;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    position: relative;
+}
+
+.acc-item-card:active {
+    transform: scale(0.98);
+}
+
+.acc-item-card.selected {
+    border-color: var(--tvs-red);
+    background: #FFF5F7;
+}
+
+.acc-item-tick {
+    width: 24px;
+    height: 24px;
+    border-radius: 8px;
+    border: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 14px;
+    transition: border-color .12s, background .12s;
+}
+
+.acc-item-card.selected .acc-item-tick {
+    border-color: var(--tvs-red);
+    background: var(--tvs-red);
+    color: #fff;
+}
+
+.acc-item-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.acc-item-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.3;
+}
+
+.acc-item-price {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-muted);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.acc-item-card.selected .acc-item-price {
+    color: var(--tvs-red);
+}
+
+/* ── Price summary panel (bottom of sales form) polish ─────────────── */
+.price-summary-panel {
+    border-radius: 20px 20px 0 0;
+    padding: 20px 20px 24px;
+}
+
+.price-summary-total-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--text-muted);
+}
+
+.price-summary-total-value {
+    font-size: 28px;
+    font-weight: 900;
+    color: var(--tvs-red);
+    line-height: 1.1;
+    letter-spacing: -.02em;
+}
+
+.price-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    padding: 5px 0;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+}
+
+.price-row:last-child {
+    border-bottom: none;
+}
+
+.price-row.total-row {
+    font-weight: 800;
+    font-size: 15px;
+    color: var(--text);
+}
+
+/* ── Stats widget numbers: bigger on mobile ─────────────────────────── */
+@media (max-width: 480px) {
+    .sw-stat-num {
+        font-size: 18px;
+    }
+
+    .sw-stat-lbl {
+        font-size: 10px;
+    }
+}
+
+/* ── Smooth scroll everywhere ───────────────────────────────────────── */
+html {
+    scroll-behavior: smooth;
+}

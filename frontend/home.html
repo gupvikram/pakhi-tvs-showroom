@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Pakhi TVS Alwar Showroom</title>
+    <meta name="description" content="Pakhi TVS Alwar Showroom — Staff Portal">
+    <link rel="manifest" href="/assets/manifest.json">
+    <meta name="theme-color" content="#C41E3A">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="stylesheet" href="/assets/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: #0F0F1A;
+            min-height: 100vh;
+            min-height: 100dvh;
+            overscroll-behavior: none;
+        }
+
+        /* ── Hero Header ── */
+        .home-hero {
+            background: linear-gradient(160deg, #C41E3A 0%, #8B0017 60%, #1A1A2E 100%);
+            padding: 56px 24px 40px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .home-hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Ccircle cx='30' cy='30' r='20'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            pointer-events: none;
+        }
+
+        .home-hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 4px 12px;
+            font-size: 11px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.9);
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            margin-bottom: 16px;
+        }
+
+        .home-hero h1 {
+            font-size: 28px;
+            font-weight: 900;
+            color: #fff;
+            line-height: 1.15;
+            letter-spacing: -.02em;
+            margin-bottom: 6px;
+        }
+
+        .home-hero-sub {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.6);
+            font-weight: 500;
+        }
+
+        .home-hero-icon {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 64px;
+            opacity: .15;
+        }
+
+        /* ── Role cards ── */
+        .home-roles {
+            padding: 24px 16px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .role-card {
+            background: #1C1C2E;
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            border-radius: 20px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            text-decoration: none;
+            position: relative;
+            overflow: hidden;
+            transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+            cursor: pointer;
+        }
+
+        .role-card:active {
+            transform: scale(0.97);
+        }
+
+        .role-card::after {
+            content: '›';
+            position: absolute;
+            right: 20px;
+            font-size: 22px;
+            color: rgba(255, 255, 255, 0.25);
+            font-weight: 300;
+        }
+
+        .role-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            flex-shrink: 0;
+        }
+
+        .role-card.sales .role-icon {
+            background: linear-gradient(135deg, #FF6B6B, #C41E3A);
+        }
+
+        .role-card.approve .role-icon {
+            background: linear-gradient(135deg, #667EEA, #1A1A6E);
+        }
+
+        .role-card.cashier .role-icon {
+            background: linear-gradient(135deg, #11998E, #38EF7D);
+        }
+
+        .role-card.accounts .role-icon {
+            background: linear-gradient(135deg, #F7971E, #FFD200);
+        }
+
+        .role-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .role-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 3px;
+        }
+
+        .role-desc {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.45);
+            font-weight: 500;
+            line-height: 1.4;
+        }
+
+        .role-pill {
+            position: absolute;
+            top: 14px;
+            right: 36px;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 10px;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+        }
+
+        .role-pill.pin {
+            background: rgba(102, 126, 234, .25);
+            color: #7c8ffc;
+        }
+
+        /* ── Stats widget host ── */
+        .home-stats {
+            padding: 0 16px 32px;
+        }
+
+        /* ── Footer ── */
+        .home-footer {
+            text-align: center;
+            padding: 12px;
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.2);
+            letter-spacing: .04em;
+            padding-bottom: max(24px, env(safe-area-inset-bottom));
+        }
+
+        /* Shimmer on load */
+        @keyframes home-fade-up {
+            from {
+                opacity: 0;
+                transform: translateY(16px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .role-card {
+            animation: home-fade-up .35s ease both;
+        }
+
+        .role-card:nth-child(1) {
+            animation-delay: .05s;
+        }
+
+        .role-card:nth-child(2) {
+            animation-delay: .12s;
+        }
+
+        .role-card:nth-child(3) {
+            animation-delay: .19s;
+        }
+
+        .role-card:nth-child(4) {
+            animation-delay: .26s;
+        }
+
+        /* Override stat widget dark card for home page */
+        .home-stats .sw-card {
+            background: #1C1C2E;
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            color: #fff;
+        }
+
+        .home-stats .sw-stat-card {
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .home-stats .sw-stat-num {
+            color: #fff;
+        }
+
+        .home-stats .sw-stat-lbl {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .home-stats .sw-lb-title {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .home-stats .sw-lb-name {
+            color: #fff;
+        }
+
+        .home-stats .sw-lb-row:nth-child(odd) {
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .home-stats .sw-tab {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .home-stats .sw-tab.active {
+            background: var(--tvs-red);
+            border-color: var(--tvs-red);
+            color: #fff;
+        }
+
+        .home-stats .sw-awaiting-wrap {
+            background: rgba(245, 158, 11, 0.15);
+            border-left-color: #F59E0B;
+        }
+
+        .home-stats .sw-awaiting-title {
+            color: #FCD34D;
+        }
+
+        .home-stats .sw-awaiting-detail {
+            color: #FCD34D;
+        }
+
+        .home-stats .sw-awaiting-who {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .home-stats .sw-lb-header .sw-lb-title {
+            color: rgba(255, 255, 255, 0.4);
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Hero -->
+    <div class="home-hero">
+        <div class="home-hero-badge">🏍️ Staff Portal</div>
+        <h1>Pakhi TVS<br>Alwar Showroom</h1>
+        <div class="home-hero-sub">Select your role to continue</div>
+        <div class="home-hero-icon">🏍️</div>
+    </div>
+
+    <!-- Role Cards -->
+    <div class="home-roles">
+        <a href="/sales" class="role-card sales">
+            <div class="role-icon">🧑‍💼</div>
+            <div class="role-info">
+                <div class="role-title">Sales Representative</div>
+                <div class="role-desc">Create new quotations for customers</div>
+            </div>
+        </a>
+
+        <a href="/approve" class="role-card approve">
+            <div class="role-icon">👑</div>
+            <div class="role-info">
+                <div class="role-title">Owner — Approvals</div>
+                <div class="role-desc">Review, approve or reject quotes</div>
+            </div>
+            <span class="role-pill pin">PIN</span>
+        </a>
+
+        <a href="/cashier" class="role-card cashier">
+            <div class="role-icon">💵</div>
+            <div class="role-info">
+                <div class="role-title">Cashier</div>
+                <div class="role-desc">Collect payments from customers</div>
+            </div>
+        </a>
+
+        <a href="/accounts" class="role-card accounts">
+            <div class="role-icon">📊</div>
+            <div class="role-info">
+                <div class="role-title">Accounts</div>
+                <div class="role-desc">View transactions and export data</div>
+            </div>
+        </a>
+    </div>
+
+    <!-- Stats overview -->
+    <div class="home-stats">
+        <div id="stats-widget-container"></div>
+    </div>
+
+    <div class="home-footer">Pakhi TVS Alwar Showroom · Staff Only</div>
+
+    <script src="/assets/stats-widget.js"></script>
+    <script>
+        initStatsWidget('stats-widget-container');
+    </script>
+</body>
+
+</html>
